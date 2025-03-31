@@ -2,7 +2,7 @@
 FROM --platform=x86_64 debian:bookworm AS firmware-builder
 
 # FIRMWARE_GIT should be a git repo with the firmware source code
-ARG FIRMWARE_GIT="https://github.com/flipperdevices/flipperzero-firmware.git"
+ARG FIRMWARE_GIT="https://github.com/DarkFlippers/unleashed-firmware"
 ARG BRANCH="0.102.3"
 
 # Install dependencies
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-ADD --keep-git-dir=true "${FIRMWARE_GIT}#${BRANCH}" firmware
+RUN git clone --branch "${BRANCH}" --depth 1 "${FIRMWARE_GIT}" firmware
 
 WORKDIR /app/firmware
 RUN ./fbt

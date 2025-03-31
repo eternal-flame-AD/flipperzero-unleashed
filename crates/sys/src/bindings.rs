@@ -98,11 +98,11 @@ impl<T> __IncompleteArrayField<T> {
     }
     #[inline]
     pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        ::core::slice::from_raw_parts(self.as_ptr(), len)
+        unsafe { ::core::slice::from_raw_parts(self.as_ptr(), len) }
     }
     #[inline]
     pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        ::core::slice::from_raw_parts_mut(self.as_mut_ptr(), len)
+        unsafe { ::core::slice::from_raw_parts_mut(self.as_mut_ptr(), len) }
     }
 }
 impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
@@ -110,7 +110,7 @@ impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
         fmt.write_str("__IncompleteArrayField")
     }
 }
-pub const API_VERSION: u32 = 5177346;
+pub const API_VERSION: u32 = 5439490;
 pub const LFRFID_T5577_BLOCK_COUNT: u32 = 8;
 pub const LFRFID_T5577_POR_DELAY: u32 = 1;
 pub const LFRFID_T5577_ST_TERMINATOR: u32 = 8;
@@ -1489,6 +1489,12 @@ extern "C" {
     ) -> *mut core::ffi::c_void;
 }
 extern "C" {
+    pub fn strcat(
+        arg1: *mut core::ffi::c_char,
+        arg2: *const core::ffi::c_char,
+    ) -> *mut core::ffi::c_char;
+}
+extern "C" {
     pub fn strchr(arg1: *const core::ffi::c_char, arg2: core::ffi::c_int)
         -> *mut core::ffi::c_char;
 }
@@ -1542,6 +1548,12 @@ extern "C" {
 extern "C" {
     pub fn strstr(
         arg1: *const core::ffi::c_char,
+        arg2: *const core::ffi::c_char,
+    ) -> *mut core::ffi::c_char;
+}
+extern "C" {
+    pub fn strtok(
+        arg1: *mut core::ffi::c_char,
         arg2: *const core::ffi::c_char,
     ) -> *mut core::ffi::c_char;
 }
@@ -2300,12 +2312,18 @@ extern "C" {
     pub fn furi_thread_get_stack_space(thread_id: FuriThreadId) -> u32;
 }
 extern "C" {
-    #[doc = "Get the standard output callback for the current thead.\n\n # Returns\n\npointer to the standard out callback function"]
-    pub fn furi_thread_get_stdout_callback() -> FuriThreadStdoutWriteCallback;
+    #[doc = "Get the standard output callback for the current thead.\n\n # Arguments\n\n* `callback` (direction out) - where to store the stdout callback\n * `context` (direction out) - where to store the context"]
+    pub fn furi_thread_get_stdout_callback(
+        callback: *mut FuriThreadStdoutWriteCallback,
+        context: *mut *mut core::ffi::c_void,
+    );
 }
 extern "C" {
-    #[doc = "Get the standard input callback for the current thead.\n\n # Returns\n\npointer to the standard in callback function"]
-    pub fn furi_thread_get_stdin_callback() -> FuriThreadStdinReadCallback;
+    #[doc = "Get the standard input callback for the current thead.\n\n # Arguments\n\n* `callback` (direction out) - where to store the stdin callback\n * `context` (direction out) - where to store the context"]
+    pub fn furi_thread_get_stdin_callback(
+        callback: *mut FuriThreadStdinReadCallback,
+        context: *mut *mut core::ffi::c_void,
+    );
 }
 extern "C" {
     #[doc = "Set standard output callback for the current thread.\n\n # Arguments\n\n* `callback` (direction in) - pointer to the callback function or NULL to clear\n * `context` (direction in) - context to be passed to the callback"]
@@ -2488,7 +2506,7 @@ extern "C" {
     pub fn furi_record_exists(name: *const core::ffi::c_char) -> bool;
 }
 extern "C" {
-    #[doc = "Create record\n\n # Arguments\n\n* `name` - record name\n * `data` - data pointer\n > **Note:** Thread safe. Create and destroy must be executed from the same\n thread."]
+    #[doc = "Create record\n\n # Arguments\n\n* `name` - record name\n * `data` - data pointer (not NULL)\n > **Note:** Thread safe. Create and destroy must be executed from the same\n thread."]
     pub fn furi_record_create(name: *const core::ffi::c_char, data: *mut core::ffi::c_void);
 }
 extern "C" {
@@ -6100,7 +6118,7 @@ pub type FuriHalI2cBusEventCallback = ::core::option::Option<
 #[derive(Debug, Copy, Clone)]
 pub struct FuriHalI2cBus {
     pub i2c: *mut I2C_TypeDef,
-    pub current_handle: *mut FuriHalI2cBusHandle,
+    pub current_handle: *const FuriHalI2cBusHandle,
     pub callback: FuriHalI2cBusEventCallback,
 }
 #[test]
@@ -6159,7 +6177,7 @@ pub const FuriHalI2cBusHandleEventDeactivate: FuriHalI2cBusHandleEvent =
 pub struct FuriHalI2cBusHandleEvent(pub core::ffi::c_uchar);
 #[doc = "FuriHal i2c handle event callback"]
 pub type FuriHalI2cBusHandleEventCallback = ::core::option::Option<
-    unsafe extern "C" fn(handle: *mut FuriHalI2cBusHandle, event: FuriHalI2cBusHandleEvent),
+    unsafe extern "C" fn(handle: *const FuriHalI2cBusHandle, event: FuriHalI2cBusHandleEvent),
 >;
 #[doc = "FuriHal i2c handle"]
 #[repr(C)]
@@ -6214,11 +6232,11 @@ extern "C" {
 }
 extern "C" {
     #[doc = "Handle for internal(power) i2c bus\n Bus: furi_hal_i2c_bus_external\n Pins: PA9(SCL) / PA10(SDA), float on release\n Params: 400khz"]
-    pub static mut furi_hal_i2c_handle_power: FuriHalI2cBusHandle;
+    pub static furi_hal_i2c_handle_power: FuriHalI2cBusHandle;
 }
 extern "C" {
     #[doc = "Handle for external i2c bus\n Bus: furi_hal_i2c_bus_external\n Pins: PC0(SCL) / PC1(SDA), float on release\n Params: 100khz"]
-    pub static mut furi_hal_i2c_handle_external: FuriHalI2cBusHandle;
+    pub static furi_hal_i2c_handle_external: FuriHalI2cBusHandle;
 }
 #[doc = "Begin the transaction by sending a START condition followed by the\n address"]
 pub const FuriHalI2cBeginStart: FuriHalI2cBegin = FuriHalI2cBegin(0);
@@ -6242,16 +6260,16 @@ pub const FuriHalI2cEndPause: FuriHalI2cEnd = FuriHalI2cEnd(2);
 pub struct FuriHalI2cEnd(pub core::ffi::c_uchar);
 extern "C" {
     #[doc = "Acquire I2C bus handle\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance"]
-    pub fn furi_hal_i2c_acquire(handle: *mut FuriHalI2cBusHandle);
+    pub fn furi_hal_i2c_acquire(handle: *const FuriHalI2cBusHandle);
 }
 extern "C" {
     #[doc = "Release I2C bus handle\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance acquired in\n `furi_hal_i2c_acquire`"]
-    pub fn furi_hal_i2c_release(handle: *mut FuriHalI2cBusHandle);
+    pub fn furi_hal_i2c_release(handle: *const FuriHalI2cBusHandle);
 }
 extern "C" {
     #[doc = "Perform I2C TX transfer\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `address` - I2C slave address\n * `data` - Pointer to data buffer\n * `size` - Size of data buffer\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_tx(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         address: u8,
         data: *const u8,
         size: usize,
@@ -6261,7 +6279,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C TX transfer, with additional settings.\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `address` - I2C slave address\n * `ten_bit` - Whether the address is 10 bits wide\n * `data` - Pointer to data buffer\n * `size` - Size of data buffer\n * `begin` - How to begin the transaction\n * `end` - How to end the transaction\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_tx_ext(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         address: u16,
         ten_bit: bool,
         data: *const u8,
@@ -6274,7 +6292,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C RX transfer\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `address` - I2C slave address\n * `data` - Pointer to data buffer\n * `size` - Size of data buffer\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_rx(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         address: u8,
         data: *mut u8,
         size: usize,
@@ -6284,7 +6302,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C RX transfer, with additional settings.\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `address` - I2C slave address\n * `ten_bit` - Whether the address is 10 bits wide\n * `data` - Pointer to data buffer\n * `size` - Size of data buffer\n * `begin` - How to begin the transaction\n * `end` - How to end the transaction\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_rx_ext(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         address: u16,
         ten_bit: bool,
         data: *mut u8,
@@ -6297,7 +6315,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C TX and RX transfers\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `address` - I2C slave address\n * `tx_data` - Pointer to TX data buffer\n * `tx_size` - Size of TX data buffer\n * `rx_data` - Pointer to RX data buffer\n * `rx_size` - Size of RX data buffer\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_trx(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         address: u8,
         tx_data: *const u8,
         tx_size: usize,
@@ -6309,7 +6327,7 @@ extern "C" {
 extern "C" {
     #[doc = "Check if I2C device presents on bus\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue if device present and is ready, false otherwise"]
     pub fn furi_hal_i2c_is_device_ready(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         timeout: u32,
     ) -> bool;
@@ -6317,7 +6335,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device register read (8-bit)\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `reg_addr` - Register address\n * `data` - Pointer to register value\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_read_reg_8(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         reg_addr: u8,
         data: *mut u8,
@@ -6327,7 +6345,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device register read (16-bit)\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `reg_addr` - Register address\n * `data` - Pointer to register value\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_read_reg_16(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         reg_addr: u8,
         data: *mut u16,
@@ -6337,7 +6355,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device memory read\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `mem_addr` - Memory start address\n * `data` - Pointer to data buffer\n * `len` - Size of data buffer\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_read_mem(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         mem_addr: u8,
         data: *mut u8,
@@ -6348,7 +6366,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device register write (8-bit)\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `reg_addr` - Register address\n * `data` - Register value\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_write_reg_8(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         reg_addr: u8,
         data: u8,
@@ -6358,7 +6376,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device register write (16-bit)\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `reg_addr` - Register address\n * `data` - Register value\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_write_reg_16(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         reg_addr: u8,
         data: u16,
@@ -6368,7 +6386,7 @@ extern "C" {
 extern "C" {
     #[doc = "Perform I2C device memory\n\n # Arguments\n\n* `handle` - Pointer to FuriHalI2cBusHandle instance\n * `i2c_addr` - I2C slave address\n * `mem_addr` - Memory start address\n * `data` - Pointer to data buffer\n * `len` - Size of data buffer\n * `timeout` - Timeout in milliseconds\n\n # Returns\n\ntrue on successful transfer, false otherwise"]
     pub fn furi_hal_i2c_write_mem(
-        handle: *mut FuriHalI2cBusHandle,
+        handle: *const FuriHalI2cBusHandle,
         i2c_addr: u8,
         mem_addr: u8,
         data: *const u8,
@@ -6515,6 +6533,28 @@ extern "C" {
     #[doc = "Get band data for frequency\n\n\n\n # Arguments\n\n* `frequency` (direction in) - The frequency\n\n # Returns\n\n{ description_of_the_return_value }"]
     pub fn furi_hal_region_get_band(frequency: u32) -> *const FuriHalRegionBand;
 }
+pub const FuriHalPwmOutputIdNone: FuriHalPwmOutputId = FuriHalPwmOutputId(0);
+pub const FuriHalPwmOutputIdTim1PA7: FuriHalPwmOutputId = FuriHalPwmOutputId(1);
+pub const FuriHalPwmOutputIdLptim2PA4: FuriHalPwmOutputId = FuriHalPwmOutputId(2);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FuriHalPwmOutputId(pub core::ffi::c_uchar);
+extern "C" {
+    #[doc = "Enable PWM channel and set parameters\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n * `freq` (direction in) - Frequency in Hz\n * `duty` (direction in) - Duty cycle value in %"]
+    pub fn furi_hal_pwm_start(channel: FuriHalPwmOutputId, freq: u32, duty: u8);
+}
+extern "C" {
+    #[doc = "Disable PWM channel\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)"]
+    pub fn furi_hal_pwm_stop(channel: FuriHalPwmOutputId);
+}
+extern "C" {
+    #[doc = "Set PWM channel parameters\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n * `freq` (direction in) - Frequency in Hz\n * `duty` (direction in) - Duty cycle value in %"]
+    pub fn furi_hal_pwm_set_params(channel: FuriHalPwmOutputId, freq: u32, duty: u8);
+}
+extern "C" {
+    #[doc = "Is PWM channel running?\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n # Returns\n\nbool - true if running"]
+    pub fn furi_hal_pwm_is_running(channel: FuriHalPwmOutputId) -> bool;
+}
 pub const InputKeyUp: InputKey = InputKey(0);
 pub const InputKeyDown: InputKey = InputKey(1);
 pub const InputKeyRight: InputKey = InputKey(2);
@@ -6602,6 +6642,7 @@ pub struct GpioPinRecord {
     pub pin: *const GpioPin,
     pub name: *const core::ffi::c_char,
     pub channel: FuriHalAdcChannel,
+    pub pwm_output: FuriHalPwmOutputId,
     pub number: u8,
     pub debug: bool,
 }
@@ -6650,8 +6691,18 @@ fn bindgen_test_layout_GpioPinRecord() {
         )
     );
     assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).number) as usize - ptr as usize },
+        unsafe { ::core::ptr::addr_of!((*ptr).pwm_output) as usize - ptr as usize },
         9usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(GpioPinRecord),
+            "::",
+            stringify!(pwm_output)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).number) as usize - ptr as usize },
+        10usize,
         concat!(
             "Offset of field: ",
             stringify!(GpioPinRecord),
@@ -6661,7 +6712,7 @@ fn bindgen_test_layout_GpioPinRecord() {
     );
     assert_eq!(
         unsafe { ::core::ptr::addr_of!((*ptr).debug) as usize - ptr as usize },
-        10usize,
+        11usize,
         concat!(
             "Offset of field: ",
             stringify!(GpioPinRecord),
@@ -7406,11 +7457,11 @@ extern "C" {
     pub fn furi_hal_power_reset();
 }
 extern "C" {
-    #[doc = "OTG enable"]
+    #[doc = "OTG enable\n\n this is low level control, use power service instead"]
     pub fn furi_hal_power_enable_otg() -> bool;
 }
 extern "C" {
-    #[doc = "OTG disable"]
+    #[doc = "OTG disable\n\n this is low level control, use power service instead"]
     pub fn furi_hal_power_disable_otg();
 }
 extern "C" {
@@ -7805,6 +7856,10 @@ extern "C" {
     pub fn version_get_version(v: *const Version) -> *const core::ffi::c_char;
 }
 extern "C" {
+    #[doc = "Get custom flipper name if set in version_set_custom_name\n\n # Arguments\n\n* `v` - pointer to Version data. NULL for currently running\n software.\n\n # Returns\n\ncustom name or NULL"]
+    pub fn version_get_custom_name(v: *const Version) -> *const core::ffi::c_char;
+}
+extern "C" {
     #[doc = "Get hardware target this firmware was built for\n\n # Arguments\n\n* `v` - pointer to Version data. NULL for currently running\n software.\n\n # Returns\n\nbuild date"]
     pub fn version_get_target(v: *const Version) -> u8;
 }
@@ -7912,12 +7967,20 @@ extern "C" {
     pub fn furi_hal_version_get_hw_connect() -> u8;
 }
 extern "C" {
-    #[doc = "Get hardware region\n\n # Returns\n\nHardware Region"]
+    #[doc = "Get hardware region (fake) = 0\n\n # Returns\n\nHardware Region (fake)"]
     pub fn furi_hal_version_get_hw_region() -> FuriHalVersionRegion;
 }
 extern "C" {
-    #[doc = "Get hardware region name\n\n # Returns\n\nHardware Region name"]
+    #[doc = "Get hardware region name (fake) = R00\n\n # Returns\n\nHardware Region name (fake)"]
     pub fn furi_hal_version_get_hw_region_name() -> *const core::ffi::c_char;
+}
+extern "C" {
+    #[doc = "Get hardware region (OTP)\n\n # Returns\n\nHardware Region"]
+    pub fn furi_hal_version_get_hw_region_otp() -> FuriHalVersionRegion;
+}
+extern "C" {
+    #[doc = "Get hardware region name (OTP)\n\n # Returns\n\nHardware Region name"]
+    pub fn furi_hal_version_get_hw_region_name_otp() -> *const core::ffi::c_char;
 }
 extern "C" {
     #[doc = "Get hardware display id\n\n # Returns\n\nDisplay id"]
@@ -7954,6 +8017,9 @@ extern "C" {
 extern "C" {
     #[doc = "Get const pointer to UID\n\n # Returns\n\npointer to UID"]
     pub fn furi_hal_version_uid() -> *const u8;
+}
+extern "C" {
+    pub fn furi_hal_version_uid_default() -> *const u8;
 }
 pub const GapEventTypeConnected: GapEventType = GapEventType(0);
 pub const GapEventTypeDisconnected: GapEventType = GapEventType(1);
@@ -8055,6 +8121,7 @@ pub type GapEventCallback = ::core::option::Option<
 pub const GapPairingNone: GapPairing = GapPairing(0);
 pub const GapPairingPinCodeShow: GapPairing = GapPairing(1);
 pub const GapPairingPinCodeVerifyYesNo: GapPairing = GapPairing(2);
+pub const GapPairingCount: GapPairing = GapPairing(3);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct GapPairing(pub core::ffi::c_uchar);
@@ -8130,7 +8197,7 @@ pub struct GapConfig {
     pub bonding_mode: bool,
     pub pairing_method: GapPairing,
     pub mac_address: [u8; 6usize],
-    pub adv_name: [core::ffi::c_char; 18usize],
+    pub adv_name: [core::ffi::c_char; 20usize],
     pub conn_param: GapConnectionParamsRequest,
 }
 #[test]
@@ -8139,7 +8206,7 @@ fn bindgen_test_layout_GapConfig() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<GapConfig>(),
-        38usize,
+        40usize,
         concat!("Size of: ", stringify!(GapConfig))
     );
     assert_eq!(
@@ -8209,7 +8276,7 @@ fn bindgen_test_layout_GapConfig() {
     );
     assert_eq!(
         unsafe { ::core::ptr::addr_of!((*ptr).conn_param) as usize - ptr as usize },
-        30usize,
+        32usize,
         concat!(
             "Offset of field: ",
             stringify!(GapConfig),
@@ -8932,6 +8999,13 @@ extern "C" {
     pub fn furi_hal_bt_get_transmitted_packets() -> u32;
 }
 extern "C" {
+    #[doc = "Reverse a MAC address byte order in-place\n # Arguments\n\n* `mac` (direction in) - mac address to reverse"]
+    pub fn furi_hal_bt_reverse_mac_addr(mac_addr: *mut u8);
+}
+extern "C" {
+    pub fn furi_hal_bt_is_connected() -> bool;
+}
+extern "C" {
     #[doc = "Check & switch C2 to given mode\n\n # Arguments\n\n* `mode` (direction in) - mode to switch into"]
     pub fn furi_hal_bt_ensure_c2_mode(mode: BleGlueC2Mode) -> bool;
 }
@@ -9135,7 +9209,7 @@ pub type FuriHalSpiBusEventCallback = ::core::option::Option<
 pub struct FuriHalSpiBus {
     pub spi: *mut SPI_TypeDef,
     pub callback: FuriHalSpiBusEventCallback,
-    pub current_handle: *mut FuriHalSpiBusHandle,
+    pub current_handle: *const FuriHalSpiBusHandle,
 }
 #[test]
 fn bindgen_test_layout_FuriHalSpiBus() {
@@ -9197,7 +9271,7 @@ pub const FuriHalSpiBusHandleEventDeactivate: FuriHalSpiBusHandleEvent =
 pub struct FuriHalSpiBusHandleEvent(pub core::ffi::c_uchar);
 #[doc = "FuriHal spi handle event callback"]
 pub type FuriHalSpiBusHandleEventCallback = ::core::option::Option<
-    unsafe extern "C" fn(handle: *mut FuriHalSpiBusHandle, event: FuriHalSpiBusHandleEvent),
+    unsafe extern "C" fn(handle: *const FuriHalSpiBusHandle, event: FuriHalSpiBusHandleEvent),
 >;
 #[doc = "FuriHal spi handle"]
 #[repr(C)]
@@ -9316,27 +9390,27 @@ extern "C" {
 }
 extern "C" {
     #[doc = "CC1101 on `furi_hal_spi_bus_r`"]
-    pub static mut furi_hal_spi_bus_handle_subghz: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_subghz: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "ST25R3916 on `furi_hal_spi_bus_r`"]
-    pub static mut furi_hal_spi_bus_handle_nfc: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_nfc: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "External on `furi_hal_spi_bus_r`\n Preset: `furi_hal_spi_preset_1edge_low_2m`\n\n miso: pa6\n mosi: pa7\n sck: pb3\n cs: pa4 (software controlled)\n\n not initialized by default, call `furi_hal_spi_bus_handle_init` to initialize\n Bus pins are floating on inactive state, CS high after initialization\n"]
-    pub static mut furi_hal_spi_bus_handle_external: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_external: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "ST7567(Display) on `furi_hal_spi_bus_d`"]
-    pub static mut furi_hal_spi_bus_handle_display: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_display: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "SdCard in fast mode on `furi_hal_spi_bus_d`"]
-    pub static mut furi_hal_spi_bus_handle_sd_fast: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_sd_fast: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "SdCard in slow mode on `furi_hal_spi_bus_d`"]
-    pub static mut furi_hal_spi_bus_handle_sd_slow: FuriHalSpiBusHandle;
+    pub static furi_hal_spi_bus_handle_sd_slow: FuriHalSpiBusHandle;
 }
 extern "C" {
     #[doc = "Initialize SPI Bus\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBus instance"]
@@ -9348,24 +9422,24 @@ extern "C" {
 }
 extern "C" {
     #[doc = "Initialize SPI Bus Handle\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance"]
-    pub fn furi_hal_spi_bus_handle_init(handle: *mut FuriHalSpiBusHandle);
+    pub fn furi_hal_spi_bus_handle_init(handle: *const FuriHalSpiBusHandle);
 }
 extern "C" {
     #[doc = "Deinitialize SPI Bus Handle\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance"]
-    pub fn furi_hal_spi_bus_handle_deinit(handle: *mut FuriHalSpiBusHandle);
+    pub fn furi_hal_spi_bus_handle_deinit(handle: *const FuriHalSpiBusHandle);
 }
 extern "C" {
     #[doc = "Acquire SPI bus\n\n blocking, calls `furi_crash` on programming error, CS transition is up to handler event routine\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance"]
-    pub fn furi_hal_spi_acquire(handle: *mut FuriHalSpiBusHandle);
+    pub fn furi_hal_spi_acquire(handle: *const FuriHalSpiBusHandle);
 }
 extern "C" {
     #[doc = "Release SPI bus\n\n calls `furi_crash` on programming error, CS transition is up to handler event routine\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance"]
-    pub fn furi_hal_spi_release(handle: *mut FuriHalSpiBusHandle);
+    pub fn furi_hal_spi_release(handle: *const FuriHalSpiBusHandle);
 }
 extern "C" {
     #[doc = "SPI Receive\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance\n * `buffer` - receive buffer\n * `size` - transaction size (buffer size)\n * `timeout` - operation timeout in ms\n\n # Returns\n\ntrue on sucess"]
     pub fn furi_hal_spi_bus_rx(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         buffer: *mut u8,
         size: usize,
         timeout: u32,
@@ -9374,7 +9448,7 @@ extern "C" {
 extern "C" {
     #[doc = "SPI Transmit\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance\n * `buffer` - transmit buffer\n * `size` - transaction size (buffer size)\n * `timeout` - operation timeout in ms\n\n # Returns\n\ntrue on success"]
     pub fn furi_hal_spi_bus_tx(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         buffer: *const u8,
         size: usize,
         timeout: u32,
@@ -9383,7 +9457,7 @@ extern "C" {
 extern "C" {
     #[doc = "SPI Transmit and Receive\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance\n * `tx_buffer` - pointer to tx buffer\n * `rx_buffer` - pointer to rx buffer\n * `size` - transaction size (buffer size)\n * `timeout` - operation timeout in ms\n\n # Returns\n\ntrue on success"]
     pub fn furi_hal_spi_bus_trx(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         tx_buffer: *const u8,
         rx_buffer: *mut u8,
         size: usize,
@@ -9393,7 +9467,7 @@ extern "C" {
 extern "C" {
     #[doc = "SPI Transmit and Receive with DMA\n\n # Arguments\n\n* `handle` - pointer to FuriHalSpiBusHandle instance\n * `tx_buffer` - pointer to tx buffer\n * `rx_buffer` - pointer to rx buffer\n * `size` - transaction size (buffer size)\n * `timeout_ms` - operation timeout in ms\n\n # Returns\n\ntrue on success"]
     pub fn furi_hal_spi_bus_trx_dma(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         tx_buffer: *mut u8,
         rx_buffer: *mut u8,
         size: usize,
@@ -10491,6 +10565,13 @@ extern "C" {
     pub fn furi_hal_usb_enable();
 }
 extern "C" {
+    #[doc = "Set USB state callback"]
+    pub fn furi_hal_usb_set_state_callback(
+        cb: FuriHalUsbStateCallback,
+        ctx: *mut core::ffi::c_void,
+    );
+}
+extern "C" {
     #[doc = "Restart USB device"]
     pub fn furi_hal_usb_reinit();
 }
@@ -10756,6 +10837,31 @@ pub const FuriHalSerialDirectionMax: FuriHalSerialDirection = FuriHalSerialDirec
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct FuriHalSerialDirection(pub core::ffi::c_uchar);
+pub const FuriHalSerialDataBits6: FuriHalSerialDataBits = FuriHalSerialDataBits(0);
+pub const FuriHalSerialDataBits7: FuriHalSerialDataBits = FuriHalSerialDataBits(1);
+pub const FuriHalSerialDataBits8: FuriHalSerialDataBits = FuriHalSerialDataBits(2);
+pub const FuriHalSerialDataBits9: FuriHalSerialDataBits = FuriHalSerialDataBits(3);
+pub const FuriHalSerialDataBitsMax: FuriHalSerialDataBits = FuriHalSerialDataBits(4);
+#[repr(transparent)]
+#[doc = "Actual data bits, i.e. not including start/stop and parity bits\n > **Note:** 6 data bits are only permitted when parity is enabled\n > **Note:** 9 data bits are only permitted when parity is disabled"]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FuriHalSerialDataBits(pub core::ffi::c_uchar);
+pub const FuriHalSerialParityNone: FuriHalSerialParity = FuriHalSerialParity(0);
+pub const FuriHalSerialParityEven: FuriHalSerialParity = FuriHalSerialParity(1);
+pub const FuriHalSerialParityOdd: FuriHalSerialParity = FuriHalSerialParity(2);
+pub const FuriHalSerialParityMax: FuriHalSerialParity = FuriHalSerialParity(3);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FuriHalSerialParity(pub core::ffi::c_uchar);
+pub const FuriHalSerialStopBits0_5: FuriHalSerialStopBits = FuriHalSerialStopBits(0);
+pub const FuriHalSerialStopBits1: FuriHalSerialStopBits = FuriHalSerialStopBits(1);
+pub const FuriHalSerialStopBits1_5: FuriHalSerialStopBits = FuriHalSerialStopBits(2);
+pub const FuriHalSerialStopBits2: FuriHalSerialStopBits = FuriHalSerialStopBits(3);
+pub const FuriHalSerialStopBits2Max: FuriHalSerialStopBits = FuriHalSerialStopBits(4);
+#[repr(transparent)]
+#[doc = "Stop bit length\n > **Note:** LPUART only supports whole stop bit lengths (i.e. 1 and 2, but not 0.5 and 1.5)"]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FuriHalSerialStopBits(pub core::ffi::c_uchar);
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct FuriHalSerialHandle {
@@ -10797,7 +10903,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = "Initialize Serial\n\n Configures GPIO, configures and enables transceiver.\n\n # Arguments\n\n* `handle` - Serial handle\n * `baud` - baud rate"]
+    #[doc = "Initialize Serial\n\n Configures GPIO, configures and enables transceiver. Default framing settings\n are used: 8 data bits, no parity, 1 stop bit. Override them with\n `furi_hal_serial_configure_framing`.\n\n # Arguments\n\n* `handle` - Serial handle\n * `baud` - baud rate"]
     pub fn furi_hal_serial_init(handle: *mut FuriHalSerialHandle, baud: u32);
 }
 extern "C" {
@@ -10824,6 +10930,15 @@ extern "C" {
     pub fn furi_hal_serial_set_br(handle: *mut FuriHalSerialHandle, baud: u32);
 }
 extern "C" {
+    #[doc = "Configures framing of a serial interface\n\n # Arguments\n\n* `handle` - Serial handle\n * `data_bits` - Data bits\n * `parity` - Parity\n * `stop_bits` - Stop bits"]
+    pub fn furi_hal_serial_configure_framing(
+        handle: *mut FuriHalSerialHandle,
+        data_bits: FuriHalSerialDataBits,
+        parity: FuriHalSerialParity,
+        stop_bits: FuriHalSerialStopBits,
+    );
+}
+extern "C" {
     #[doc = "Transmits data in semi-blocking mode\n\n Fills transmission pipe with data, returns as soon as all bytes from buffer\n are in the pipe.\n\n Real transmission will be completed later. Use\n `furi_hal_serial_tx_wait_complete` to wait for completion if you need it.\n\n # Arguments\n\n* `handle` - Serial handle\n * `buffer` - data\n * `buffer_size` - data size (in bytes)"]
     pub fn furi_hal_serial_tx(
         handle: *mut FuriHalSerialHandle,
@@ -10845,6 +10960,8 @@ pub const FuriHalSerialRxEventFrameError: FuriHalSerialRxEvent = FuriHalSerialRx
 pub const FuriHalSerialRxEventNoiseError: FuriHalSerialRxEvent = FuriHalSerialRxEvent(8);
 #[doc = "< Overrun Error: no space for received data"]
 pub const FuriHalSerialRxEventOverrunError: FuriHalSerialRxEvent = FuriHalSerialRxEvent(16);
+#[doc = "< Parity Error: incorrect parity bit received"]
+pub const FuriHalSerialRxEventParityError: FuriHalSerialRxEvent = FuriHalSerialRxEvent(32);
 #[repr(transparent)]
 #[doc = "Serial RX events"]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -10888,14 +11005,14 @@ pub type FuriHalSerialDmaRxCallback = ::core::option::Option<
     ),
 >;
 extern "C" {
-    #[doc = "Enable an input/output directon\n\n Takes over the respective pin by reconfiguring it to\n the appropriate alternative function.\n\n # Arguments\n\n* `handle` - Serial handle\n * `direction` - Direction to enable"]
+    #[doc = "Enable an input/output direction\n\n Takes over the respective pin by reconfiguring it to\n the appropriate alternative function.\n\n # Arguments\n\n* `handle` - Serial handle\n * `direction` - Direction to enable"]
     pub fn furi_hal_serial_enable_direction(
         handle: *mut FuriHalSerialHandle,
         direction: FuriHalSerialDirection,
     );
 }
 extern "C" {
-    #[doc = "Disable an input/output directon\n\n Releases the respective pin by reconfiguring it to\n initial state, making possible its use for other purposes.\n\n # Arguments\n\n* `handle` - Serial handle\n * `direction` - Direction to disable"]
+    #[doc = "Disable an input/output direction\n\n Releases the respective pin by reconfiguring it to\n initial state, making possible its use for other purposes.\n\n # Arguments\n\n* `handle` - Serial handle\n * `direction` - Direction to disable"]
     pub fn furi_hal_serial_disable_direction(
         handle: *mut FuriHalSerialHandle,
         direction: FuriHalSerialDirection,
@@ -10928,6 +11045,10 @@ extern "C" {
         data: *mut u8,
         len: usize,
     ) -> usize;
+}
+extern "C" {
+    #[doc = "Send a break sequence (low level for the whole character duration)\n\n # Arguments\n\n* `handle` - Serial handle"]
+    pub fn furi_hal_serial_send_break(handle: *mut FuriHalSerialHandle);
 }
 extern "C" {
     pub fn furi_hal_info_get_api_version(major: *mut u16, minor: *mut u16);
@@ -11123,6 +11244,18 @@ extern "C" {
     pub fn furi_hal_subghz_set_frequency_and_path(value: u32) -> u32;
 }
 extern "C" {
+    #[doc = "Сheck if transmission is allowed on this frequency with your current config\n\n # Arguments\n\n* `value` - frequency in Hz\n\n # Returns\n\ntrue if allowed"]
+    pub fn furi_hal_subghz_is_tx_allowed(value: u32) -> bool;
+}
+extern "C" {
+    #[doc = "Get the current rolling protocols counter ++/-- value\n # Returns\n\nint32_t current value"]
+    pub fn furi_hal_subghz_get_rolling_counter_mult() -> i32;
+}
+extern "C" {
+    #[doc = "Set the current rolling protocols counter ++/-- value\n # Arguments\n\n* `mult` - int32_t = -1, -10, -50, 0, 1, 10, 50"]
+    pub fn furi_hal_subghz_set_rolling_counter_mult(mult: i32);
+}
+extern "C" {
     #[doc = "Set frequency\n\n # Arguments\n\n* `value` - frequency in Hz\n\n # Returns\n\nreal frequency in Hz"]
     pub fn furi_hal_subghz_set_frequency(value: u32) -> u32;
 }
@@ -11162,6 +11295,12 @@ extern "C" {
 extern "C" {
     #[doc = "Stop async transmission and cleanup resources Resets GPIO, TIM2, and DMA1"]
     pub fn furi_hal_subghz_stop_async_tx();
+}
+extern "C" {
+    pub fn furi_hal_subghz_set_ext_leds_and_amp(enabled: bool);
+}
+extern "C" {
+    pub fn furi_hal_subghz_get_ext_leds_and_amp() -> bool;
 }
 pub type FuriHalIbuttonEmulateCallback =
     ::core::option::Option<unsafe extern "C" fn(context: *mut core::ffi::c_void)>;
@@ -11544,6 +11683,18 @@ extern "C" {
 extern "C" {
     #[doc = "Send ISO15693 SOF in listener mode\n\n # Returns\n\nFuriHalNfcError"]
     pub fn furi_hal_nfc_iso15693_listener_tx_sof() -> FuriHalNfcError;
+}
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to autodetect\n\n # Returns\n\nFuriHalNfcError"]
+    pub fn furi_hal_nfc_iso15693_detect_mode() -> FuriHalNfcError;
+}
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to 1OutOf4, disables autodetection\n\n # Returns\n\nFuriHalNfcError"]
+    pub fn furi_hal_nfc_iso15693_force_1outof4() -> FuriHalNfcError;
+}
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to 1OutOf256, disables autodetection\n\n # Returns\n\nFuriHalNfcError"]
+    pub fn furi_hal_nfc_iso15693_force_1outof256() -> FuriHalNfcError;
 }
 extern "C" {
     #[doc = "Set FeliCa collision resolution parameters in listener mode.\n\n Configures the NFC hardware for automatic collision resolution.\n\n # Arguments\n\n* `idm` (direction in) - pointer to a byte array containing the IDm.\n * `idm_len` (direction in) - IDm length in bytes.\n * `pmm` (direction in) - pointer to a byte array containing the PMm.\n * `pmm_len` (direction in) - PMm length in bytes.\n * `sys_code` (direction in) - System code from SYS_C block\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
@@ -15872,7 +16023,8 @@ extern "C" {
 pub struct SubGhzDeviceRegistry {
     _unused: [u8; 0],
 }
-pub type SubGhzBegin = ::core::option::Option<unsafe extern "C" fn() -> bool>;
+pub type SubGhzBegin =
+    ::core::option::Option<unsafe extern "C" fn(conf: *mut SubGhzDeviceConf) -> bool>;
 pub type SubGhzEnd = ::core::option::Option<unsafe extern "C" fn()>;
 pub type SubGhzIsConnect = ::core::option::Option<unsafe extern "C" fn() -> bool>;
 pub type SubGhzReset = ::core::option::Option<unsafe extern "C" fn()>;
@@ -16256,6 +16408,58 @@ fn bindgen_test_layout_SubGhzDevice() {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct SubGhzDeviceConf {
+    pub ver: u8,
+    pub extended_range: bool,
+    pub amp_and_leds: bool,
+}
+#[test]
+fn bindgen_test_layout_SubGhzDeviceConf() {
+    const UNINIT: ::core::mem::MaybeUninit<SubGhzDeviceConf> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<SubGhzDeviceConf>(),
+        3usize,
+        concat!("Size of: ", stringify!(SubGhzDeviceConf))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<SubGhzDeviceConf>(),
+        1usize,
+        concat!("Alignment of ", stringify!(SubGhzDeviceConf))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).ver) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzDeviceConf),
+            "::",
+            stringify!(ver)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).extended_range) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzDeviceConf),
+            "::",
+            stringify!(extended_range)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).amp_and_leds) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzDeviceConf),
+            "::",
+            stringify!(amp_and_leds)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct SubGhzDeviceCC1101Ext {
     _unused: [u8; 0],
 }
@@ -16271,6 +16475,47 @@ pub const BtStatusConnected: BtStatus = BtStatus(3);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct BtStatus(pub core::ffi::c_uchar);
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct BtRssi {
+    pub rssi: u8,
+    pub since: u32,
+}
+#[test]
+fn bindgen_test_layout_BtRssi() {
+    const UNINIT: ::core::mem::MaybeUninit<BtRssi> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<BtRssi>(),
+        8usize,
+        concat!("Size of: ", stringify!(BtRssi))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<BtRssi>(),
+        4usize,
+        concat!("Alignment of ", stringify!(BtRssi))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rssi) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(BtRssi),
+            "::",
+            stringify!(rssi)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).since) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(BtRssi),
+            "::",
+            stringify!(since)
+        )
+    );
+}
 pub type BtStatusChangedCallback =
     ::core::option::Option<unsafe extern "C" fn(status: BtStatus, context: *mut core::ffi::c_void)>;
 extern "C" {
@@ -16311,6 +16556,9 @@ extern "C" {
 extern "C" {
     #[doc = "Set default keys storage file path\n\n # Arguments\n\n* `bt` - Bt instance"]
     pub fn bt_keys_storage_set_default_path(bt: *mut Bt);
+}
+extern "C" {
+    pub fn bt_remote_rssi(bt: *mut Bt, rssi: *mut u8) -> bool;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -16428,7 +16676,7 @@ extern "C" {
     pub fn cli_nl(cli: *mut Cli);
 }
 extern "C" {
-    pub fn cli_session_open(cli: *mut Cli, session: *mut core::ffi::c_void);
+    pub fn cli_session_open(cli: *mut Cli, session: *const core::ffi::c_void);
 }
 extern "C" {
     pub fn cli_session_close(cli: *mut Cli);
@@ -16442,7 +16690,7 @@ pub struct CliSession {
     _unused: [u8; 0],
 }
 extern "C" {
-    pub static mut cli_vcp: CliSession;
+    pub static cli_vcp: CliSession;
 }
 extern "C" {
     #[doc = "Get icon width\n\n # Arguments\n\n* `instance` (direction in) - pointer to Icon data\n\n # Returns\n\nwidth in pixels"]
@@ -16520,7 +16768,8 @@ pub const FontPrimary: Font = Font(0);
 pub const FontSecondary: Font = Font(1);
 pub const FontKeyboard: Font = Font(2);
 pub const FontBigNumbers: Font = Font(3);
-pub const FontTotalNumber: Font = Font(4);
+pub const FontBatteryPercent: Font = Font(4);
+pub const FontTotalNumber: Font = Font(5);
 #[repr(transparent)]
 #[doc = "Fonts enumeration"]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -16655,6 +16904,10 @@ extern "C" {
 extern "C" {
     #[doc = "Get current font height\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nheight in pixels."]
     pub fn canvas_current_font_height(canvas: *const Canvas) -> usize;
+}
+extern "C" {
+    #[doc = "Get current font width\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nwidth in pixels."]
+    pub fn canvas_current_font_width(canvas: *const Canvas) -> usize;
 }
 extern "C" {
     #[doc = "Get font parameters\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `font` - Font\n\n # Returns\n\npointer to CanvasFontParameters structure"]
@@ -16820,7 +17073,7 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = "Draw rounded-corner box of width, height at x,y, with round value raduis\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - box width\n * `height` - box height\n * `radius` - box corner radius"]
+    #[doc = "Draw rounded-corner box of width, height at x,y, with round value radius\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - box width\n * `height` - box height\n * `radius` - box corner radius"]
     pub fn canvas_draw_rbox(
         canvas: *mut Canvas,
         x: i32,
@@ -16829,6 +17082,52 @@ extern "C" {
         height: usize,
         radius: usize,
     );
+}
+extern "C" {
+    pub fn canvas_draw_icon_bitmap(
+        canvas: *mut Canvas,
+        x: u8,
+        y: u8,
+        w: i16,
+        h: i16,
+        icon: *const Icon,
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InputSettings {
+    pub vibro_touch_level: u8,
+}
+#[test]
+fn bindgen_test_layout_InputSettings() {
+    const UNINIT: ::core::mem::MaybeUninit<InputSettings> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<InputSettings>(),
+        1usize,
+        concat!("Size of: ", stringify!(InputSettings))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<InputSettings>(),
+        1usize,
+        concat!("Alignment of ", stringify!(InputSettings))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).vibro_touch_level) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(InputSettings),
+            "::",
+            stringify!(vibro_touch_level)
+        )
+    );
+}
+extern "C" {
+    pub fn input_settings_load(settings: *mut InputSettings);
+}
+extern "C" {
+    pub fn input_settings_save(settings: *const InputSettings);
 }
 #[doc = "< Press event, emitted after debounce"]
 pub const InputTypePress: InputType = InputType(0);
@@ -17801,6 +18100,18 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn elements_scrollable_text_line_str(
+        canvas: *mut Canvas,
+        x: u8,
+        y: u8,
+        width: u8,
+        string: *const core::ffi::c_char,
+        scroll: usize,
+        ellipsis: bool,
+        centered: bool,
+    );
+}
+extern "C" {
     #[doc = "Draw text box element\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - width to fit text\n * `height` - height to fit text\n * `horizontal` - Align instance\n * `vertical` - Align instance\n * `text` (direction in) - Formatted text. The following formats are available:\n \"text- bold font is used\n \"text- monospaced font is used\n \"text- white text on black background\n * `strip_to_dots` - Strip text to ... if does not fit to width"]
     pub fn elements_text_box(
         canvas: *mut Canvas,
@@ -17958,6 +18269,14 @@ extern "C" {
     pub fn gui_set_lockdown(gui: *mut Gui, lockdown: bool);
 }
 extern "C" {
+    #[doc = "Inhibit lockdown mode\n\n Lockdown mode can be inhibited by calling this function with inhibit set to true.\n This is used to show information even when flipper is locked.\n\n # Arguments\n\n* `gui` - Gui instance\n * `inhibit` - true to inhibit lockdown mode"]
+    pub fn gui_set_lockdown_inhibit(gui: *mut Gui, inhibit: bool);
+}
+extern "C" {
+    #[doc = "Check if Gui is in lockdown mode\n\n # Arguments\n\n* `gui` - Gui instance\n # Returns\n\nbool true if Gui is in lockdown mode"]
+    pub fn gui_is_lockdown(gui: *const Gui) -> bool;
+}
+extern "C" {
     #[doc = "Acquire Direct Draw lock and get Canvas instance\n\n This method return Canvas instance for use in monopoly mode. Direct draw lock\n disables input and draw call dispatch functions in GUI service. No other\n applications or services will be able to draw until gui_direct_draw_release\n call.\n\n # Arguments\n\n* `gui` - The graphical user interface\n\n # Returns\n\nCanvas instance"]
     pub fn gui_direct_draw_acquire(gui: *mut Gui) -> *mut Canvas;
 }
@@ -18100,8 +18419,9 @@ pub struct ButtonPanel {
     _unused: [u8; 0],
 }
 #[doc = "Callback type to call for handling selecting button_panel items"]
-pub type ButtonItemCallback =
-    ::core::option::Option<unsafe extern "C" fn(context: *mut core::ffi::c_void, index: u32)>;
+pub type ButtonItemCallback = ::core::option::Option<
+    unsafe extern "C" fn(context: *mut core::ffi::c_void, index: u32, type_: InputType),
+>;
 extern "C" {
     #[doc = "Allocate new button_panel module.\n\n # Returns\n\nButtonPanel instance"]
     pub fn button_panel_alloc() -> *mut ButtonPanel;
@@ -18115,11 +18435,15 @@ extern "C" {
     pub fn button_panel_reset(button_panel: *mut ButtonPanel);
 }
 extern "C" {
+    #[doc = "Resets selected_item_x and selected_item_y.\n\n # Arguments\n\n* `button_panel` - ButtonPanel instance"]
+    pub fn button_panel_reset_selection(button_panel: *mut ButtonPanel);
+}
+extern "C" {
     #[doc = "Reserve space for adding items.\n\n One does not simply use button_panel_add_item() without this function. It\n should be allocated space for it first.\n\n # Arguments\n\n* `button_panel` - ButtonPanel instance\n * `reserve_x` - number of columns in button_panel\n * `reserve_y` - number of rows in button_panel"]
     pub fn button_panel_reserve(button_panel: *mut ButtonPanel, reserve_x: usize, reserve_y: usize);
 }
 extern "C" {
-    #[doc = "Add item to button_panel module.\n\n Have to set element in bounds of allocated size by X and by Y.\n\n # Arguments\n\n* `button_panel` - ButtonPanel instance\n * `index` - value to pass to callback\n * `matrix_place_x` - coordinates by x-axis on virtual grid, it\n is only used for navigation\n * `matrix_place_y` - coordinates by y-axis on virtual grid, it\n is only used for naviagation\n * `x` - x-coordinate to draw icon on\n * `y` - y-coordinate to draw icon on\n * `icon_name` - name of the icon to draw\n * `icon_name_selected` - name of the icon to draw when current\n element is selected\n * `callback` - function to call when specific element is\n selected (pressed Ok on selected item)\n * `callback_context` - context to pass to callback"]
+    #[doc = "Add item to button_panel module.\n\n Have to set element in bounds of allocated size by X and by Y.\n\n # Arguments\n\n* `button_panel` - ButtonPanel instance\n * `index` - value to pass to callback\n * `matrix_place_x` - coordinates by x-axis on virtual grid, it\n is only used for navigation\n * `matrix_place_y` - coordinates by y-axis on virtual grid, it\n is only used for navigation\n * `x` - x-coordinate to draw icon on\n * `y` - y-coordinate to draw icon on\n * `icon_name` - name of the icon to draw\n * `icon_name_selected` - name of the icon to draw when current\n element is selected\n * `callback` - function to call when specific element is\n selected (pressed Ok on selected item)\n * `callback_context` - context to pass to callback"]
     pub fn button_panel_add_item(
         button_panel: *mut ButtonPanel,
         index: u32,
@@ -18332,6 +18656,7 @@ pub type BrowserWorkerListItemCallback = ::core::option::Option<
     unsafe extern "C" fn(
         context: *mut core::ffi::c_void,
         item_path: *mut FuriString,
+        idx: u32,
         is_folder: bool,
         is_last: bool,
     ),
@@ -18523,7 +18848,7 @@ extern "C" {
     pub fn popup_get_view(popup: *mut Popup) -> *mut View;
 }
 extern "C" {
-    #[doc = "Set popup header text\n\n # Arguments\n\n* `popup` - Popup instance\n * `callback` - PopupCallback"]
+    #[doc = "Set popup callback function\n\n # Arguments\n\n* `popup` - Popup instance\n * `callback` - PopupCallback"]
     pub fn popup_set_callback(popup: *mut Popup, callback: PopupCallback);
 }
 extern "C" {
@@ -18602,6 +18927,18 @@ extern "C" {
     );
 }
 extern "C" {
+    #[doc = "Add lockable item to submenu\n\n # Arguments\n\n* `submenu` - Submenu instance\n * `label` - menu item label\n * `index` - menu item index, used for callback, may be\n the same with other items\n * `callback` - menu item callback\n * `callback_context` - menu item callback context\n * `locked` - menu item locked status\n * `locked_message` - menu item locked message"]
+    pub fn submenu_add_lockable_item(
+        submenu: *mut Submenu,
+        label: *const core::ffi::c_char,
+        index: u32,
+        callback: SubmenuItemCallback,
+        callback_context: *mut core::ffi::c_void,
+        locked: bool,
+        locked_message: *const core::ffi::c_char,
+    );
+}
+extern "C" {
     #[doc = "Change label of an existing item\n\n # Arguments\n\n* `submenu` - Submenu instance\n * `index` - The index of the item\n * `label` - The new label"]
     pub fn submenu_change_item_label(
         submenu: *mut Submenu,
@@ -18624,6 +18961,10 @@ extern "C" {
 extern "C" {
     #[doc = "Set optional header for submenu\n\n # Arguments\n\n* `submenu` - Submenu instance\n * `header` - header to set"]
     pub fn submenu_set_header(submenu: *mut Submenu, header: *const core::ffi::c_char);
+}
+extern "C" {
+    #[doc = "Set Orientation\n\n # Arguments\n\n* `submenu` - Submenu instance\n * `orientation` - either vertical or horizontal"]
+    pub fn submenu_set_orientation(submenu: *mut Submenu, orientation: ViewOrientation);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -18797,6 +19138,13 @@ extern "C" {
     ) -> *mut VariableItem;
 }
 extern "C" {
+    #[doc = "Get item in VariableItemList\n\n # Arguments\n\n* `variable_item_list` - VariableItemList instance\n * `position` - index of the item to get\n\n # Returns\n\nVariableItem* item instance"]
+    pub fn variable_item_list_get(
+        variable_item_list: *mut VariableItemList,
+        position: u8,
+    ) -> *mut VariableItem;
+}
+extern "C" {
     #[doc = "Set enter callback\n\n # Arguments\n\n* `variable_item_list` - VariableItemList instance\n * `callback` - VariableItemListEnterCallback instance\n * `context` - pointer to context"]
     pub fn variable_item_list_set_enter_callback(
         variable_item_list: *mut VariableItemList,
@@ -18824,10 +19172,22 @@ extern "C" {
     pub fn variable_item_set_values_count(item: *mut VariableItem, values_count: u8);
 }
 extern "C" {
+    #[doc = "Set new label for item\n\n # Arguments\n\n* `item` - VariableItem* instance\n * `label` - The new label text"]
+    pub fn variable_item_set_item_label(item: *mut VariableItem, label: *const core::ffi::c_char);
+}
+extern "C" {
     #[doc = "Set item current selected text\n\n # Arguments\n\n* `item` - VariableItem* instance\n * `current_value_text` - The current value text"]
     pub fn variable_item_set_current_value_text(
         item: *mut VariableItem,
         current_value_text: *const core::ffi::c_char,
+    );
+}
+extern "C" {
+    #[doc = "Set item locked state and text\n\n # Arguments\n\n* `item` - VariableItem* instance\n * `locked` - Is item locked boolean\n * `locked_message` - The locked message text"]
+    pub fn variable_item_set_locked(
+        item: *mut VariableItem,
+        locked: bool,
+        locked_message: *const core::ffi::c_char,
     );
 }
 extern "C" {
@@ -18937,15 +19297,24 @@ extern "C" {
     pub fn widget_add_icon_element(widget: *mut Widget, x: u8, y: u8, icon: *const Icon);
 }
 extern "C" {
-    #[doc = "Add Frame Element\n\n # Arguments\n\n* `widget` - Widget instance\n * `x` - top left x coordinate\n * `y` - top left y coordinate\n * `width` - frame width\n * `height` - frame height\n * `radius` - frame radius"]
-    pub fn widget_add_frame_element(
+    #[doc = "Add Rect Element\n\n # Arguments\n\n* `widget` - Widget instance\n * `x` - top left x coordinate\n * `y` - top left y coordinate\n * `width` - rect width\n * `height` - rect height\n * `radius` - corner radius\n * `fill` - whether to fill the box or not"]
+    pub fn widget_add_rect_element(
         widget: *mut Widget,
         x: u8,
         y: u8,
         width: u8,
         height: u8,
         radius: u8,
+        fill: bool,
     );
+}
+extern "C" {
+    #[doc = "Add Circle Element\n\n # Arguments\n\n* `widget` - Widget instance\n * `x` - center x coordinate\n * `y` - center y coordinate\n * `radius` - circle radius\n * `fill` - whether to fill the circle or not"]
+    pub fn widget_add_circle_element(widget: *mut Widget, x: u8, y: u8, radius: u8, fill: bool);
+}
+extern "C" {
+    #[doc = "Add Line Element\n\n # Arguments\n\n* `widget` - Widget instance\n * `x1` - first x coordinate\n * `y1` - first y coordinate\n * `x2` - second x coordinate\n * `y2` - second y coordinate"]
+    pub fn widget_add_line_element(widget: *mut Widget, x1: u8, y1: u8, x2: u8, y2: u8);
 }
 pub const SceneManagerEventTypeCustom: SceneManagerEventType = SceneManagerEventType(0);
 pub const SceneManagerEventTypeBack: SceneManagerEventType = SceneManagerEventType(1);
@@ -19150,6 +19519,10 @@ extern "C" {
         scene_manager: *mut SceneManager,
         scene_id: u32,
     ) -> bool;
+}
+extern "C" {
+    #[doc = "Get id of current scene\n\n # Arguments\n\n* `scene_manager` - SceneManager instance\n\n # Returns\n\nScene ID"]
+    pub fn scene_manager_get_current_scene(scene_manager: *mut SceneManager) -> u32;
 }
 extern "C" {
     #[doc = "Exit from current scene\n\n # Arguments\n\n* `scene_manager` - SceneManager instance"]
@@ -19371,6 +19744,8 @@ pub const LoaderStatusOk: LoaderStatus = LoaderStatus(0);
 pub const LoaderStatusErrorAppStarted: LoaderStatus = LoaderStatus(1);
 pub const LoaderStatusErrorUnknownApp: LoaderStatus = LoaderStatus(2);
 pub const LoaderStatusErrorInternal: LoaderStatus = LoaderStatus(3);
+pub const LoaderStatusErrorApiMismatch: LoaderStatus = LoaderStatus(4);
+pub const LoaderStatusErrorApiMismatchExit: LoaderStatus = LoaderStatus(5);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct LoaderStatus(pub core::ffi::c_uchar);
@@ -20572,6 +20947,53 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct PowerSettings {
+    pub auto_poweroff_delay_ms: u32,
+    pub charge_supress_percent: u8,
+}
+#[test]
+fn bindgen_test_layout_PowerSettings() {
+    const UNINIT: ::core::mem::MaybeUninit<PowerSettings> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<PowerSettings>(),
+        8usize,
+        concat!("Size of: ", stringify!(PowerSettings))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<PowerSettings>(),
+        4usize,
+        concat!("Alignment of ", stringify!(PowerSettings))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).auto_poweroff_delay_ms) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(PowerSettings),
+            "::",
+            stringify!(auto_poweroff_delay_ms)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).charge_supress_percent) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(PowerSettings),
+            "::",
+            stringify!(charge_supress_percent)
+        )
+    );
+}
+extern "C" {
+    pub fn power_settings_load(settings: *mut PowerSettings);
+}
+extern "C" {
+    pub fn power_settings_save(settings: *const PowerSettings);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct Power {
     _unused: [u8; 0],
 }
@@ -20665,6 +21087,7 @@ pub struct PowerInfo {
     pub gauge_is_ok: bool,
     pub is_charging: bool,
     pub is_shutdown_requested: bool,
+    pub is_otg_enabled: bool,
     pub current_charger: f32,
     pub current_gauge: f32,
     pub voltage_battery_charge_limit: f32,
@@ -20720,6 +21143,16 @@ fn bindgen_test_layout_PowerInfo() {
             stringify!(PowerInfo),
             "::",
             stringify!(is_shutdown_requested)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).is_otg_enabled) as usize - ptr as usize },
+        3usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(PowerInfo),
+            "::",
+            stringify!(is_otg_enabled)
         )
     );
     assert_eq!(
@@ -20868,6 +21301,307 @@ extern "C" {
 extern "C" {
     #[doc = "Enable or disable battery low level notification message\n\n # Arguments\n\n* `power` - Power instance\n * `enable` - true - enable, false - disable"]
     pub fn power_enable_low_battery_level_notification(power: *mut Power, enable: bool);
+}
+extern "C" {
+    pub fn power_api_get_settings(instance: *mut Power, settings: *mut PowerSettings);
+}
+extern "C" {
+    pub fn power_api_set_settings(instance: *mut Power, settings: *const PowerSettings);
+}
+extern "C" {
+    #[doc = "Enable or disable OTG\n\n # Arguments\n\n* `power` - Power instance\n * `enable` - true - enable, false - disable"]
+    pub fn power_enable_otg(power: *mut Power, enable: bool);
+}
+extern "C" {
+    #[doc = "Check OTG status\n\n # Returns\n\ntrue if OTG is requested"]
+    pub fn power_is_otg_enabled(power: *mut Power) -> bool;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct RGBBacklightSettings {
+    pub version: u8,
+    pub rgb_backlight_installed: u8,
+    pub brightness: f32,
+    pub led_2_color_index: u8,
+    pub led_1_color_index: u8,
+    pub led_0_color_index: u8,
+    pub rainbow_mode: u32,
+    pub rainbow_speed_ms: u32,
+    pub rainbow_step: u16,
+    pub rainbow_saturation: u8,
+    pub rainbow_wide: u8,
+}
+#[test]
+fn bindgen_test_layout_RGBBacklightSettings() {
+    const UNINIT: ::core::mem::MaybeUninit<RGBBacklightSettings> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<RGBBacklightSettings>(),
+        24usize,
+        concat!("Size of: ", stringify!(RGBBacklightSettings))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<RGBBacklightSettings>(),
+        4usize,
+        concat!("Alignment of ", stringify!(RGBBacklightSettings))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).version) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(version)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rgb_backlight_installed) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rgb_backlight_installed)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).brightness) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(brightness)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).led_2_color_index) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(led_2_color_index)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).led_1_color_index) as usize - ptr as usize },
+        9usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(led_1_color_index)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).led_0_color_index) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(led_0_color_index)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_mode) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rainbow_mode)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_speed_ms) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rainbow_speed_ms)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_step) as usize - ptr as usize },
+        20usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rainbow_step)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_saturation) as usize - ptr as usize },
+        22usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rainbow_saturation)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_wide) as usize - ptr as usize },
+        23usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightSettings),
+            "::",
+            stringify!(rainbow_wide)
+        )
+    );
+}
+extern "C" {
+    pub fn rgb_backlight_settings_load(settings: *mut RGBBacklightSettings);
+}
+extern "C" {
+    pub fn rgb_backlight_settings_save(settings: *const RGBBacklightSettings);
+}
+extern "C" {
+    #[doc = "Инициализация линии управления подсветкой"]
+    pub fn SK6805_init();
+}
+extern "C" {
+    #[doc = "Получить количество светодиодов в подсветке\n\n # Returns\n\nКоличество светодиодов"]
+    pub fn SK6805_get_led_count() -> u8;
+}
+extern "C" {
+    #[doc = "Установить цвет свечения светодиода\n\n # Arguments\n\n* `led_index` - номер светодиода (от 0 до SK6805_get_led_count())\n * `r` - значение красного (0-255)\n * `g` - значение зелёного (0-255)\n * `b` - значение синего (0-255)"]
+    pub fn SK6805_set_led_color(led_index: u8, r: u8, g: u8, b: u8);
+}
+extern "C" {
+    #[doc = "Обновление состояния подсветки дисплея"]
+    pub fn SK6805_update();
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct RGBBacklightApp {
+    pub rainbow_timer: *mut FuriTimer,
+    pub rainbow_hue: u16,
+    pub rainbow_red: u8,
+    pub rainbow_green: u8,
+    pub rainbow_blue: u8,
+    pub settings: *mut RGBBacklightSettings,
+    pub current_night_shift: f32,
+}
+#[test]
+fn bindgen_test_layout_RGBBacklightApp() {
+    const UNINIT: ::core::mem::MaybeUninit<RGBBacklightApp> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<RGBBacklightApp>(),
+        20usize,
+        concat!("Size of: ", stringify!(RGBBacklightApp))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<RGBBacklightApp>(),
+        4usize,
+        concat!("Alignment of ", stringify!(RGBBacklightApp))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_timer) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(rainbow_timer)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_hue) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(rainbow_hue)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_red) as usize - ptr as usize },
+        6usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(rainbow_red)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_green) as usize - ptr as usize },
+        7usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(rainbow_green)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).rainbow_blue) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(rainbow_blue)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).settings) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(settings)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).current_night_shift) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(RGBBacklightApp),
+            "::",
+            stringify!(current_night_shift)
+        )
+    );
+}
+extern "C" {
+    #[doc = "Update leds colors from current_led[i].color and selected bright\n\n # Arguments\n\n* `brightness` - - Brightness 0..1\n # Returns\n\n"]
+    pub fn rgb_backlight_update(brightness: f32);
+}
+extern "C" {
+    #[doc = "Set current_led[i].color for one led by static color index\n\n # Arguments\n\n* `led` - - Led number (0..2)\n * `index` - - Static color index number\n # Returns\n\n"]
+    pub fn rgb_backlight_set_led_static_color(led: u8, index: u8);
+}
+extern "C" {
+    #[doc = "Stop rainbow timer\n\n # Arguments\n\n* `app` - - Instance of RGBBacklightApp from FURI RECORD\n # Returns\n\n"]
+    pub fn rainbow_timer_stop(app: *mut RGBBacklightApp);
+}
+extern "C" {
+    #[doc = "Start rainbow timer\n\n # Arguments\n\n* `app` - - Instance of RGBBacklightApp from FURI RECORD\n # Returns\n\n"]
+    pub fn rainbow_timer_start(app: *mut RGBBacklightApp);
+}
+extern "C" {
+    #[doc = "Start rainbow timer only if all conditions meet (rgb_backlight_installed && rainbow ON)\n\n # Arguments\n\n* `app` - - Instance of RGBBacklightApp from FURI RECORD\n # Returns\n\n"]
+    pub fn rainbow_timer_starter(app: *mut RGBBacklightApp);
+}
+extern "C" {
+    #[doc = "Get name of static color by index\n\n # Arguments\n\n* `index` - - Static colors index number\n # Returns\n\n- color name"]
+    pub fn rgb_backlight_get_color_text(index: u8) -> *const core::ffi::c_char;
+}
+extern "C" {
+    #[doc = "Get static colors count\n\n # Arguments\n\n# Returns\n\n- colors count"]
+    pub fn rgb_backlight_get_color_count() -> u8;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -21547,12 +22281,12 @@ extern "C" {
 }
 extern "C" {
     #[doc = "Read register\n\n # Arguments\n\n* `handle` - - pointer t FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `val` - - pointer to the variable to store the read value"]
-    pub fn st25r3916_read_reg(handle: *mut FuriHalSpiBusHandle, reg: u8, val: *mut u8);
+    pub fn st25r3916_read_reg(handle: *const FuriHalSpiBusHandle, reg: u8, val: *mut u8);
 }
 extern "C" {
     #[doc = "Read multiple registers\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg_start` - - start register address\n * `values` - - pointer to the buffer to store the read values\n * `length` - - number of registers to read"]
     pub fn st25r3916_read_burst_regs(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg_start: u8,
         values: *mut u8,
         length: u8,
@@ -21560,12 +22294,12 @@ extern "C" {
 }
 extern "C" {
     #[doc = "Write register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `val` - - value to write"]
-    pub fn st25r3916_write_reg(handle: *mut FuriHalSpiBusHandle, reg: u8, val: u8);
+    pub fn st25r3916_write_reg(handle: *const FuriHalSpiBusHandle, reg: u8, val: u8);
 }
 extern "C" {
     #[doc = "Write multiple registers\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg_start` - - start register address\n * `values` - - pointer to buffer to write\n * `length` - - number of registers to write"]
     pub fn st25r3916_write_burst_regs(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg_start: u8,
         values: *const u8,
         length: u8,
@@ -21574,31 +22308,39 @@ extern "C" {
 extern "C" {
     #[doc = "Write fifo register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `buff` - - buffer to write to FIFO\n * `length` - - number of bytes to write"]
     pub fn st25r3916_reg_write_fifo(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         buff: *const u8,
         length: usize,
     );
 }
 extern "C" {
     #[doc = "Read fifo register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `buff` - - buffer to store the read values\n * `length` - - number of bytes to read"]
-    pub fn st25r3916_reg_read_fifo(handle: *mut FuriHalSpiBusHandle, buff: *mut u8, length: usize);
+    pub fn st25r3916_reg_read_fifo(
+        handle: *const FuriHalSpiBusHandle,
+        buff: *mut u8,
+        length: usize,
+    );
 }
 extern "C" {
     #[doc = "Write PTA memory register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `values` - - pointer to buffer to write\n * `length` - - number of bytes to write"]
     pub fn st25r3916_write_pta_mem(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         values: *const u8,
         length: usize,
     );
 }
 extern "C" {
     #[doc = "Read PTA memory register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `values` - - buffer to store the read values\n * `length` - - number of bytes to read"]
-    pub fn st25r3916_read_pta_mem(handle: *mut FuriHalSpiBusHandle, values: *mut u8, length: usize);
+    pub fn st25r3916_read_pta_mem(
+        handle: *const FuriHalSpiBusHandle,
+        values: *mut u8,
+        length: usize,
+    );
 }
 extern "C" {
     #[doc = "Write PTF memory register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `values` - - pointer to buffer to write\n * `length` - - number of bytes to write"]
     pub fn st25r3916_write_ptf_mem(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         values: *const u8,
         length: usize,
     );
@@ -21606,35 +22348,35 @@ extern "C" {
 extern "C" {
     #[doc = "Read PTTSN memory register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `values` - - pointer to buffer to write\n * `length` - - number of bytes to write"]
     pub fn st25r3916_write_pttsn_mem(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         values: *mut u8,
         length: usize,
     );
 }
 extern "C" {
     #[doc = "Send Direct command\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `cmd` - - direct command"]
-    pub fn st25r3916_direct_cmd(handle: *mut FuriHalSpiBusHandle, cmd: u8);
+    pub fn st25r3916_direct_cmd(handle: *const FuriHalSpiBusHandle, cmd: u8);
 }
 extern "C" {
     #[doc = "Read test register\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `val` - - pointer to the variable to store the read value"]
-    pub fn st25r3916_read_test_reg(handle: *mut FuriHalSpiBusHandle, reg: u8, val: *mut u8);
+    pub fn st25r3916_read_test_reg(handle: *const FuriHalSpiBusHandle, reg: u8, val: *mut u8);
 }
 extern "C" {
     #[doc = "Write test register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `val` - - value to write"]
-    pub fn st25r3916_write_test_reg(handle: *mut FuriHalSpiBusHandle, reg: u8, val: u8);
+    pub fn st25r3916_write_test_reg(handle: *const FuriHalSpiBusHandle, reg: u8, val: u8);
 }
 extern "C" {
     #[doc = "Clear register bits\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `clr_mask` - - bit mask to clear"]
-    pub fn st25r3916_clear_reg_bits(handle: *mut FuriHalSpiBusHandle, reg: u8, clr_mask: u8);
+    pub fn st25r3916_clear_reg_bits(handle: *const FuriHalSpiBusHandle, reg: u8, clr_mask: u8);
 }
 extern "C" {
     #[doc = "Set register bits\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `set_mask` - - bit mask to set"]
-    pub fn st25r3916_set_reg_bits(handle: *mut FuriHalSpiBusHandle, reg: u8, set_mask: u8);
+    pub fn st25r3916_set_reg_bits(handle: *const FuriHalSpiBusHandle, reg: u8, set_mask: u8);
 }
 extern "C" {
     #[doc = "Change register bits\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `mask` - - bit mask to change\n * `value` - - new register value to write"]
     pub fn st25r3916_change_reg_bits(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg: u8,
         mask: u8,
         value: u8,
@@ -21643,7 +22385,7 @@ extern "C" {
 extern "C" {
     #[doc = "Modify register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `clr_mask` - - bit mask to clear\n * `set_mask` - - bit mask to set"]
     pub fn st25r3916_modify_reg(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg: u8,
         clr_mask: u8,
         set_mask: u8,
@@ -21652,7 +22394,7 @@ extern "C" {
 extern "C" {
     #[doc = "Change test register bits\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `mask` - - bit mask to change\n * `value` - - new register value to write"]
     pub fn st25r3916_change_test_reg_bits(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg: u8,
         mask: u8,
         value: u8,
@@ -21661,7 +22403,7 @@ extern "C" {
 extern "C" {
     #[doc = "Check register\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `reg` - - register address\n * `mask` - - bit mask to check\n * `val` - - expected register value\n\n # Returns\n\ntrue if register value matches the expected value, false otherwise"]
     pub fn st25r3916_check_reg(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         reg: u8,
         mask: u8,
         val: u8,
@@ -21669,20 +22411,20 @@ extern "C" {
 }
 extern "C" {
     #[doc = "Mask st25r3916 interrupts\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `mask` - - mask of interrupts to be disabled"]
-    pub fn st25r3916_mask_irq(handle: *mut FuriHalSpiBusHandle, mask: u32);
+    pub fn st25r3916_mask_irq(handle: *const FuriHalSpiBusHandle, mask: u32);
 }
 extern "C" {
     #[doc = "Get st25r3916 interrupts\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n\n # Returns\n\nreceived interrupts"]
-    pub fn st25r3916_get_irq(handle: *mut FuriHalSpiBusHandle) -> u32;
+    pub fn st25r3916_get_irq(handle: *const FuriHalSpiBusHandle) -> u32;
 }
 extern "C" {
     #[doc = "Write FIFO\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `buff` - - buffer to write to FIFO\n * `bits` - - number of bits to write"]
-    pub fn st25r3916_write_fifo(handle: *mut FuriHalSpiBusHandle, buff: *const u8, bits: usize);
+    pub fn st25r3916_write_fifo(handle: *const FuriHalSpiBusHandle, buff: *const u8, bits: usize);
 }
 extern "C" {
     #[doc = "Read FIFO\n\n # Arguments\n\n* `handle` - - pointer to FuriHalSpiBusHandle instance\n * `buff` - - buffer to read from FIFO\n * `buff_size` - - buffer size n bytes\n * `buff_bits` - - pointer to number of bits read\n\n # Returns\n\ntrue if read success, false otherwise"]
     pub fn st25r3916_read_fifo(
-        handle: *mut FuriHalSpiBusHandle,
+        handle: *const FuriHalSpiBusHandle,
         buff: *mut u8,
         buff_size: usize,
         buff_bits: *mut usize,
@@ -21786,6 +22528,12 @@ extern "C" {
 pub struct FlipperFormat {
     _unused: [u8; 0],
 }
+pub const FlipperFormatOffsetFromCurrent: FlipperFormatOffset = FlipperFormatOffset(0);
+pub const FlipperFormatOffsetFromStart: FlipperFormatOffset = FlipperFormatOffset(1);
+pub const FlipperFormatOffsetFromEnd: FlipperFormatOffset = FlipperFormatOffset(2);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FlipperFormatOffset(pub core::ffi::c_uchar);
 extern "C" {
     #[doc = "Allocate FlipperFormat as string.\n\n # Returns\n\nFlipperFormat* pointer to a FlipperFormat instance"]
     pub fn flipper_format_string_alloc() -> *mut FlipperFormat;
@@ -21859,6 +22607,18 @@ extern "C" {
 extern "C" {
     #[doc = "Rewind the RW pointer.\n\n # Arguments\n\n* `flipper_format` - Pointer to a FlipperFormat instance\n\n # Returns\n\nTrue on success"]
     pub fn flipper_format_rewind(flipper_format: *mut FlipperFormat) -> bool;
+}
+extern "C" {
+    #[doc = "Get the RW pointer position\n\n # Arguments\n\n* `flipper_format` - Pointer to a FlipperFormat instance\n\n # Returns\n\nRW pointer position"]
+    pub fn flipper_format_tell(flipper_format: *mut FlipperFormat) -> usize;
+}
+extern "C" {
+    #[doc = "Set the RW pointer position to an arbitrary value\n\n # Arguments\n\n* `flipper_format` - Pointer to a FlipperFormat instance\n * `offset` - Offset relative to the anchor point\n * `anchor` - Anchor point (e.g. start of file)\n\n # Returns\n\nTrue on success"]
+    pub fn flipper_format_seek(
+        flipper_format: *mut FlipperFormat,
+        offset: i32,
+        anchor: FlipperFormatOffset,
+    ) -> bool;
 }
 extern "C" {
     #[doc = "Move the RW pointer at the end. Can be useful if you want to add some data\n after reading.\n\n # Arguments\n\n* `flipper_format` - Pointer to a FlipperFormat instance\n\n # Returns\n\nTrue on success"]
@@ -23533,7 +24293,7 @@ pub struct ProtocolDict {
 pub type ProtocolId = i32;
 extern "C" {
     pub fn protocol_dict_alloc(
-        protocols: *mut *const ProtocolBase,
+        protocols: *const *const ProtocolBase,
         protocol_count: usize,
     ) -> *mut ProtocolDict;
 }
@@ -23711,6 +24471,53 @@ extern "C" {
 extern "C" {
     pub fn t5577_write_with_mask(data: *mut LFRFIDT5577, page: u8, with_pass: bool, password: u32);
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LFRFIDEM4305 {
+    #[doc = "< Word data to write"]
+    pub word: [u32; 16usize],
+    #[doc = "< Word mask"]
+    pub mask: u16,
+}
+#[test]
+fn bindgen_test_layout_LFRFIDEM4305() {
+    const UNINIT: ::core::mem::MaybeUninit<LFRFIDEM4305> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<LFRFIDEM4305>(),
+        68usize,
+        concat!("Size of: ", stringify!(LFRFIDEM4305))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<LFRFIDEM4305>(),
+        4usize,
+        concat!("Alignment of ", stringify!(LFRFIDEM4305))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).word) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(LFRFIDEM4305),
+            "::",
+            stringify!(word)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).mask) as usize - ptr as usize },
+        64usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(LFRFIDEM4305),
+            "::",
+            stringify!(mask)
+        )
+    );
+}
+extern "C" {
+    #[doc = "Write EM4305 tag data to tag\n\n # Arguments\n\n* `data` - The data to write (mask is taken from that data)"]
+    pub fn em4305_write(data: *mut LFRFIDEM4305);
+}
 pub const LFRFIDFeatureASK: LFRFIDFeature = LFRFIDFeature(1);
 #[doc = "ASK Demodulation"]
 pub const LFRFIDFeaturePSK: LFRFIDFeature = LFRFIDFeature(2);
@@ -23718,8 +24525,8 @@ pub const LFRFIDFeaturePSK: LFRFIDFeature = LFRFIDFeature(2);
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct LFRFIDFeature(pub core::ffi::c_uchar);
 pub const LFRFIDProtocolEM4100: LFRFIDProtocol = LFRFIDProtocol(0);
-pub const LFRFIDProtocolEM410032: LFRFIDProtocol = LFRFIDProtocol(1);
-pub const LFRFIDProtocolEM410016: LFRFIDProtocol = LFRFIDProtocol(2);
+pub const LFRFIDProtocolEM4100_32: LFRFIDProtocol = LFRFIDProtocol(1);
+pub const LFRFIDProtocolEM4100_16: LFRFIDProtocol = LFRFIDProtocol(2);
 pub const LFRFIDProtocolElectra: LFRFIDProtocol = LFRFIDProtocol(3);
 pub const LFRFIDProtocolH10301: LFRFIDProtocol = LFRFIDProtocol(4);
 pub const LFRFIDProtocolIdteck: LFRFIDProtocol = LFRFIDProtocol(5);
@@ -23740,14 +24547,17 @@ pub const LFRFIDProtocolGallagher: LFRFIDProtocol = LFRFIDProtocol(19);
 pub const LFRFIDProtocolNexwatch: LFRFIDProtocol = LFRFIDProtocol(20);
 pub const LFRFIDProtocolSecurakey: LFRFIDProtocol = LFRFIDProtocol(21);
 pub const LFRFIDProtocolGProxII: LFRFIDProtocol = LFRFIDProtocol(22);
-pub const LFRFIDProtocolMax: LFRFIDProtocol = LFRFIDProtocol(23);
+pub const LFRFIDProtocolNoralsy: LFRFIDProtocol = LFRFIDProtocol(23);
+pub const LFRFIDProtocolMax: LFRFIDProtocol = LFRFIDProtocol(24);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct LFRFIDProtocol(pub core::ffi::c_uchar);
 extern "C" {
-    pub static mut lfrfid_protocols: [*const ProtocolBase; 0usize];
+    pub static lfrfid_protocols: [*const ProtocolBase; 0usize];
 }
 pub const LFRFIDWriteTypeT5577: LFRFIDWriteType = LFRFIDWriteType(0);
+pub const LFRFIDWriteTypeEM4305: LFRFIDWriteType = LFRFIDWriteType(1);
+pub const LFRFIDWriteTypeMax: LFRFIDWriteType = LFRFIDWriteType(2);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct LFRFIDWriteType(pub core::ffi::c_uchar);
@@ -23761,6 +24571,7 @@ pub struct LFRFIDWriteRequest {
 #[derive(Copy, Clone)]
 pub union LFRFIDWriteRequest__bindgen_ty_1 {
     pub t5577: LFRFIDT5577,
+    pub em4305: LFRFIDEM4305,
 }
 #[test]
 fn bindgen_test_layout_LFRFIDWriteRequest__bindgen_ty_1() {
@@ -23769,7 +24580,7 @@ fn bindgen_test_layout_LFRFIDWriteRequest__bindgen_ty_1() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<LFRFIDWriteRequest__bindgen_ty_1>(),
-        40usize,
+        68usize,
         concat!("Size of: ", stringify!(LFRFIDWriteRequest__bindgen_ty_1))
     );
     assert_eq!(
@@ -23790,6 +24601,16 @@ fn bindgen_test_layout_LFRFIDWriteRequest__bindgen_ty_1() {
             stringify!(t5577)
         )
     );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).em4305) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(LFRFIDWriteRequest__bindgen_ty_1),
+            "::",
+            stringify!(em4305)
+        )
+    );
 }
 #[test]
 fn bindgen_test_layout_LFRFIDWriteRequest() {
@@ -23797,7 +24618,7 @@ fn bindgen_test_layout_LFRFIDWriteRequest() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<LFRFIDWriteRequest>(),
-        44usize,
+        72usize,
         concat!("Size of: ", stringify!(LFRFIDWriteRequest))
     );
     assert_eq!(
@@ -23984,7 +24805,16 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = "Start emulate mode\n\n # Arguments\n\n* `worker` - The worker\n * `protocol` (direction in) - The protocol"]
+    #[doc = "Start write and set pass mode\n\n # Arguments\n\n* `worker` -\n * `protocol` -\n * `callback` -\n * `context` -"]
+    pub fn lfrfid_worker_write_and_set_pass_start(
+        worker: *mut LFRFIDWorker,
+        protocol: LFRFIDProtocol,
+        callback: LFRFIDWorkerWriteCallback,
+        context: *mut core::ffi::c_void,
+    );
+}
+extern "C" {
+    #[doc = "Start emulate mode\n # Arguments\n\n* `worker` -"]
     pub fn lfrfid_worker_emulate_start(worker: *mut LFRFIDWorker, protocol: LFRFIDProtocol);
 }
 extern "C" {
@@ -27132,10 +27962,11 @@ pub const NfcProtocolMfPlus: NfcProtocol = NfcProtocol(8);
 pub const NfcProtocolMfDesfire: NfcProtocol = NfcProtocol(9);
 pub const NfcProtocolSlix: NfcProtocol = NfcProtocol(10);
 pub const NfcProtocolSt25tb: NfcProtocol = NfcProtocol(11);
+pub const NfcProtocolEmv: NfcProtocol = NfcProtocol(12);
 #[doc = "< Special value representing the number of available protocols."]
-pub const NfcProtocolNum: NfcProtocol = NfcProtocol(12);
+pub const NfcProtocolNum: NfcProtocol = NfcProtocol(13);
 #[doc = "< Special value representing an invalid state."]
-pub const NfcProtocolInvalid: NfcProtocol = NfcProtocol(13);
+pub const NfcProtocolInvalid: NfcProtocol = NfcProtocol(14);
 #[repr(transparent)]
 #[doc = "Enumeration of all available NFC protocols.\n\n When implementing a new protocol, add its identifier before the\n NfcProtocolNum entry."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -27565,6 +28396,18 @@ extern "C" {
     #[doc = "Send ISO15693 Start of Frame pattern in listener mode\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be configured.\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
     pub fn nfc_iso15693_listener_tx_sof(instance: *mut Nfc) -> NfcError;
 }
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to autodetect\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be configured.\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
+    pub fn nfc_iso15693_detect_mode(instance: *mut Nfc) -> NfcError;
+}
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to 1OutOf4, disables autodetection\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be configured.\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
+    pub fn nfc_iso15693_force_1outof4(instance: *mut Nfc) -> NfcError;
+}
+extern "C" {
+    #[doc = "Set ISO15693 parser mode to 1OutOf256, disables autodetection\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be configured.\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
+    pub fn nfc_iso15693_force_1outof256(instance: *mut Nfc) -> NfcError;
+}
 #[doc = "Generic Nfc instance type.\n\n Must be cast to a concrete type before use.\n Depending on the context, a pointer of this type\n may point to an object of the following types:\n - Nfc type,\n - Concrete poller type,\n - Concrete listener type."]
 pub type NfcGenericInstance = core::ffi::c_void;
 #[doc = "Generic Nfc event data type.\n\n Must be cast to a concrete type before use.\n Usually, it will be the protocol-specific event type."]
@@ -27885,6 +28728,1224 @@ extern "C" {
 extern "C" {
     #[doc = "Stop an NfcScanner.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be stopped."]
     pub fn nfc_scanner_stop(instance: *mut NfcScanner);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SimpleArray {
+    _unused: [u8; 0],
+}
+pub type SimpleArrayData = core::ffi::c_void;
+pub type SimpleArrayElement = core::ffi::c_void;
+pub type SimpleArrayInit =
+    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
+pub type SimpleArrayReset =
+    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
+pub type SimpleArrayCopy = ::core::option::Option<
+    unsafe extern "C" fn(elem: *mut SimpleArrayElement, other: *const SimpleArrayElement),
+>;
+#[doc = "Simple Array configuration structure. Defined per type."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SimpleArrayConfig {
+    #[doc = "< Initialisation (in-place constructor) method."]
+    pub init: SimpleArrayInit,
+    #[doc = "< Reset (custom destructor) method."]
+    pub reset: SimpleArrayReset,
+    #[doc = "< Copy (custom copy-constructor) method."]
+    pub copy: SimpleArrayCopy,
+    pub type_size: usize,
+}
+#[test]
+fn bindgen_test_layout_SimpleArrayConfig() {
+    const UNINIT: ::core::mem::MaybeUninit<SimpleArrayConfig> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<SimpleArrayConfig>(),
+        16usize,
+        concat!("Size of: ", stringify!(SimpleArrayConfig))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<SimpleArrayConfig>(),
+        4usize,
+        concat!("Alignment of ", stringify!(SimpleArrayConfig))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).init) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SimpleArrayConfig),
+            "::",
+            stringify!(init)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).reset) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SimpleArrayConfig),
+            "::",
+            stringify!(reset)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).copy) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SimpleArrayConfig),
+            "::",
+            stringify!(copy)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).type_size) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SimpleArrayConfig),
+            "::",
+            stringify!(type_size)
+        )
+    );
+}
+extern "C" {
+    #[doc = "Allocate a SimpleArray instance with the given configuration.\n\n # Arguments\n\n* `[in]` - config Pointer to the type-specific configuration\n # Returns\n\nPointer to the allocated SimpleArray instance"]
+    pub fn simple_array_alloc(config: *const SimpleArrayConfig) -> *mut SimpleArray;
+}
+extern "C" {
+    #[doc = "Free a SimpleArray instance and release its contents.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be freed"]
+    pub fn simple_array_free(instance: *mut SimpleArray);
+}
+extern "C" {
+    #[doc = "Initialise a SimpleArray instance by allocating additional space to contain\n the requested number of elements.\n If init() is specified in the config, then it is called for each element,\n otherwise the data is filled with zeroes.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be init'd\n * `[in]` - count Number of elements to be allocated and init'd"]
+    pub fn simple_array_init(instance: *mut SimpleArray, count: u32);
+}
+extern "C" {
+    #[doc = "Reset a SimpleArray instance and delete all of its elements.\n If reset() is specified in the config, then it is called for each element,\n otherwise the data is simply free()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be reset"]
+    pub fn simple_array_reset(instance: *mut SimpleArray);
+}
+extern "C" {
+    #[doc = "Copy (duplicate) another SimpleArray instance to this one.\n If copy() is specified in the config, then it is called for each element,\n otherwise the data is simply memcpy()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to copy to\n * `[in]` - other Pointer to the SimpleArray instance to copy from"]
+    pub fn simple_array_copy(instance: *mut SimpleArray, other: *const SimpleArray);
+}
+extern "C" {
+    #[doc = "Check if another SimpleArray instance is equal (the same object or holds the\n same data) to this one.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be compared\n * `[in]` - other Pointer to the SimpleArray instance to be compared\n # Returns\n\nTrue if instances are considered equal, false otherwise"]
+    pub fn simple_array_is_equal(instance: *const SimpleArray, other: *const SimpleArray) -> bool;
+}
+extern "C" {
+    #[doc = "Get the count of elements currently contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to query the count from\n # Returns\n\nCount of elements contained in the instance"]
+    pub fn simple_array_get_count(instance: *const SimpleArray) -> u32;
+}
+extern "C" {
+    #[doc = "Get a pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nPointer to the element specified by index"]
+    pub fn simple_array_get(instance: *mut SimpleArray, index: u32) -> *mut SimpleArrayElement;
+}
+extern "C" {
+    #[doc = "Get a const pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nConst pointer to the element specified by index"]
+    pub fn simple_array_cget(instance: *const SimpleArray, index: u32)
+        -> *const SimpleArrayElement;
+}
+extern "C" {
+    #[doc = "Get a pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nPointer to the instance's internal data"]
+    pub fn simple_array_get_data(instance: *mut SimpleArray) -> *mut SimpleArrayData;
+}
+extern "C" {
+    #[doc = "Get a constant pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nConstant pointer to the instance's internal data"]
+    pub fn simple_array_cget_data(instance: *const SimpleArray) -> *const SimpleArrayData;
+}
+extern "C" {
+    pub static simple_array_config_uint8_t: SimpleArrayConfig;
+}
+pub const Iso14443_4aErrorNone: Iso14443_4aError = Iso14443_4aError(0);
+pub const Iso14443_4aErrorNotPresent: Iso14443_4aError = Iso14443_4aError(1);
+pub const Iso14443_4aErrorProtocol: Iso14443_4aError = Iso14443_4aError(2);
+pub const Iso14443_4aErrorTimeout: Iso14443_4aError = Iso14443_4aError(3);
+pub const Iso14443_4aErrorSendExtra: Iso14443_4aError = Iso14443_4aError(4);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso14443_4aError(pub core::ffi::c_uchar);
+pub const Iso14443_4aBitRateBoth106Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(0);
+pub const Iso14443_4aBitRatePiccToPcd212Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(1);
+pub const Iso14443_4aBitRatePiccToPcd424Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(2);
+pub const Iso14443_4aBitRatePiccToPcd848Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(3);
+pub const Iso14443_4aBitRatePcdToPicc212Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(4);
+pub const Iso14443_4aBitRatePcdToPicc424Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(5);
+pub const Iso14443_4aBitRatePcdToPicc848Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(6);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso14443_4aBitRate(pub core::ffi::c_uchar);
+pub const Iso14443_4aFrameOptionNad: Iso14443_4aFrameOption = Iso14443_4aFrameOption(0);
+pub const Iso14443_4aFrameOptionCid: Iso14443_4aFrameOption = Iso14443_4aFrameOption(1);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso14443_4aFrameOption(pub core::ffi::c_uchar);
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_4aAtsData {
+    pub tl: u8,
+    pub t0: u8,
+    pub ta_1: u8,
+    pub tb_1: u8,
+    pub tc_1: u8,
+    pub t1_tk: *mut SimpleArray,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_4aAtsData() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aAtsData> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_4aAtsData>(),
+        12usize,
+        concat!("Size of: ", stringify!(Iso14443_4aAtsData))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_4aAtsData>(),
+        4usize,
+        concat!("Alignment of ", stringify!(Iso14443_4aAtsData))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).tl) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(tl)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).t0) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(t0)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).ta_1) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(ta_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).tb_1) as usize - ptr as usize },
+        3usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(tb_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).tc_1) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(tc_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).t1_tk) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aAtsData),
+            "::",
+            stringify!(t1_tk)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_4aData {
+    pub iso14443_3a_data: *mut Iso14443_3aData,
+    pub ats_data: Iso14443_4aAtsData,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_4aData() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aData> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_4aData>(),
+        16usize,
+        concat!("Size of: ", stringify!(Iso14443_4aData))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_4aData>(),
+        4usize,
+        concat!("Alignment of ", stringify!(Iso14443_4aData))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).iso14443_3a_data) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aData),
+            "::",
+            stringify!(iso14443_3a_data)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).ats_data) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aData),
+            "::",
+            stringify!(ats_data)
+        )
+    );
+}
+extern "C" {
+    pub fn iso14443_4a_alloc() -> *mut Iso14443_4aData;
+}
+extern "C" {
+    pub fn iso14443_4a_free(data: *mut Iso14443_4aData);
+}
+extern "C" {
+    pub fn iso14443_4a_reset(data: *mut Iso14443_4aData);
+}
+extern "C" {
+    pub fn iso14443_4a_copy(data: *mut Iso14443_4aData, other: *const Iso14443_4aData);
+}
+extern "C" {
+    pub fn iso14443_4a_verify(data: *mut Iso14443_4aData, device_type: *const FuriString) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_load(
+        data: *mut Iso14443_4aData,
+        ff: *mut FlipperFormat,
+        version: u32,
+    ) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_save(data: *const Iso14443_4aData, ff: *mut FlipperFormat) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_is_equal(
+        data: *const Iso14443_4aData,
+        other: *const Iso14443_4aData,
+    ) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_get_device_name(
+        data: *const Iso14443_4aData,
+        name_type: NfcDeviceNameType,
+    ) -> *const core::ffi::c_char;
+}
+extern "C" {
+    pub fn iso14443_4a_get_uid(data: *const Iso14443_4aData, uid_len: *mut usize) -> *const u8;
+}
+extern "C" {
+    pub fn iso14443_4a_set_uid(data: *mut Iso14443_4aData, uid: *const u8, uid_len: usize) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_get_base_data(data: *const Iso14443_4aData) -> *mut Iso14443_3aData;
+}
+extern "C" {
+    pub fn iso14443_4a_get_frame_size_max(data: *const Iso14443_4aData) -> u16;
+}
+extern "C" {
+    pub fn iso14443_4a_get_fwt_fc_max(data: *const Iso14443_4aData) -> u32;
+}
+extern "C" {
+    pub fn iso14443_4a_get_historical_bytes(
+        data: *const Iso14443_4aData,
+        count: *mut u32,
+    ) -> *const u8;
+}
+extern "C" {
+    pub fn iso14443_4a_supports_bit_rate(
+        data: *const Iso14443_4aData,
+        bit_rate: Iso14443_4aBitRate,
+    ) -> bool;
+}
+extern "C" {
+    pub fn iso14443_4a_supports_frame_option(
+        data: *const Iso14443_4aData,
+        option: Iso14443_4aFrameOption,
+    ) -> bool;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct APDU {
+    pub size: u8,
+    pub data: [u8; 255usize],
+}
+#[test]
+fn bindgen_test_layout_APDU() {
+    const UNINIT: ::core::mem::MaybeUninit<APDU> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<APDU>(),
+        256usize,
+        concat!("Size of: ", stringify!(APDU))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<APDU>(),
+        1usize,
+        concat!("Alignment of ", stringify!(APDU))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).size) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(APDU),
+            "::",
+            stringify!(size)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).data) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(APDU),
+            "::",
+            stringify!(data)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Transaction {
+    pub atc: u16,
+    pub amount: u64,
+    pub country: u16,
+    pub currency: u16,
+    pub date: u32,
+    pub time: u32,
+}
+#[test]
+fn bindgen_test_layout_Transaction() {
+    const UNINIT: ::core::mem::MaybeUninit<Transaction> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Transaction>(),
+        32usize,
+        concat!("Size of: ", stringify!(Transaction))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Transaction>(),
+        8usize,
+        concat!("Alignment of ", stringify!(Transaction))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).atc) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(atc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).amount) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(amount)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).country) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(country)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).currency) as usize - ptr as usize },
+        18usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(currency)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).date) as usize - ptr as usize },
+        20usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(date)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).time) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Transaction),
+            "::",
+            stringify!(time)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EmvApplication {
+    pub log_sfi: u8,
+    pub log_records: u8,
+    pub log_fmt: [u8; 50usize],
+    pub log_fmt_len: u8,
+    pub active_tr: u8,
+    pub saving_trans_list: bool,
+    pub trans: [Transaction; 16usize],
+    pub priority: u8,
+    pub aid: [u8; 16usize],
+    pub aid_len: u8,
+    pub application_interchange_profile: [u8; 2usize],
+    pub application_name: [core::ffi::c_char; 17usize],
+    pub application_label: [core::ffi::c_char; 17usize],
+    pub cardholder_name: [core::ffi::c_char; 25usize],
+    pub pan: [u8; 10usize],
+    pub pan_len: u8,
+    pub exp_day: u8,
+    pub exp_month: u8,
+    pub exp_year: u8,
+    pub effective_day: u8,
+    pub effective_month: u8,
+    pub effective_year: u8,
+    pub country_code: u16,
+    pub currency_code: u16,
+    pub pin_try_counter: u8,
+    pub transaction_counter: u16,
+    pub last_online_atc: u16,
+    pub pdol: APDU,
+    pub afl: APDU,
+}
+#[test]
+fn bindgen_test_layout_EmvApplication() {
+    const UNINIT: ::core::mem::MaybeUninit<EmvApplication> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<EmvApplication>(),
+        1192usize,
+        concat!("Size of: ", stringify!(EmvApplication))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<EmvApplication>(),
+        8usize,
+        concat!("Alignment of ", stringify!(EmvApplication))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).log_sfi) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(log_sfi)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).log_records) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(log_records)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).log_fmt) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(log_fmt)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).log_fmt_len) as usize - ptr as usize },
+        52usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(log_fmt_len)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).active_tr) as usize - ptr as usize },
+        53usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(active_tr)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).saving_trans_list) as usize - ptr as usize },
+        54usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(saving_trans_list)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).trans) as usize - ptr as usize },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(trans)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).priority) as usize - ptr as usize },
+        568usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(priority)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).aid) as usize - ptr as usize },
+        569usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(aid)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).aid_len) as usize - ptr as usize },
+        585usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(aid_len)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            ::core::ptr::addr_of!((*ptr).application_interchange_profile) as usize - ptr as usize
+        },
+        586usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(application_interchange_profile)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).application_name) as usize - ptr as usize },
+        588usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(application_name)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).application_label) as usize - ptr as usize },
+        605usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(application_label)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).cardholder_name) as usize - ptr as usize },
+        622usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(cardholder_name)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).pan) as usize - ptr as usize },
+        647usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(pan)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).pan_len) as usize - ptr as usize },
+        657usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(pan_len)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).exp_day) as usize - ptr as usize },
+        658usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(exp_day)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).exp_month) as usize - ptr as usize },
+        659usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(exp_month)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).exp_year) as usize - ptr as usize },
+        660usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(exp_year)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).effective_day) as usize - ptr as usize },
+        661usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(effective_day)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).effective_month) as usize - ptr as usize },
+        662usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(effective_month)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).effective_year) as usize - ptr as usize },
+        663usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(effective_year)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).country_code) as usize - ptr as usize },
+        664usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(country_code)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).currency_code) as usize - ptr as usize },
+        666usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(currency_code)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).pin_try_counter) as usize - ptr as usize },
+        668usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(pin_try_counter)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).transaction_counter) as usize - ptr as usize },
+        670usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(transaction_counter)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).last_online_atc) as usize - ptr as usize },
+        672usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(last_online_atc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).pdol) as usize - ptr as usize },
+        674usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(pdol)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).afl) as usize - ptr as usize },
+        930usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvApplication),
+            "::",
+            stringify!(afl)
+        )
+    );
+}
+pub const EmvErrorNone: EmvError = EmvError(0);
+pub const EmvErrorNotPresent: EmvError = EmvError(1);
+pub const EmvErrorProtocol: EmvError = EmvError(2);
+pub const EmvErrorTimeout: EmvError = EmvError(3);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct EmvError(pub core::ffi::c_uchar);
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EmvData {
+    pub iso14443_4a_data: *mut Iso14443_4aData,
+    pub emv_application: EmvApplication,
+}
+#[test]
+fn bindgen_test_layout_EmvData() {
+    const UNINIT: ::core::mem::MaybeUninit<EmvData> = ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<EmvData>(),
+        1200usize,
+        concat!("Size of: ", stringify!(EmvData))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<EmvData>(),
+        8usize,
+        concat!("Alignment of ", stringify!(EmvData))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).iso14443_4a_data) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvData),
+            "::",
+            stringify!(iso14443_4a_data)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).emv_application) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(EmvData),
+            "::",
+            stringify!(emv_application)
+        )
+    );
+}
+extern "C" {
+    pub fn emv_alloc() -> *mut EmvData;
+}
+extern "C" {
+    pub fn emv_free(data: *mut EmvData);
+}
+extern "C" {
+    pub fn emv_reset(data: *mut EmvData);
+}
+extern "C" {
+    pub fn emv_copy(data: *mut EmvData, other: *const EmvData);
+}
+extern "C" {
+    pub fn emv_verify(data: *mut EmvData, device_type: *const FuriString) -> bool;
+}
+extern "C" {
+    pub fn emv_load(data: *mut EmvData, ff: *mut FlipperFormat, version: u32) -> bool;
+}
+extern "C" {
+    pub fn emv_save(data: *const EmvData, ff: *mut FlipperFormat) -> bool;
+}
+extern "C" {
+    pub fn emv_is_equal(data: *const EmvData, other: *const EmvData) -> bool;
+}
+extern "C" {
+    pub fn emv_get_device_name(
+        data: *const EmvData,
+        name_type: NfcDeviceNameType,
+    ) -> *const core::ffi::c_char;
+}
+extern "C" {
+    pub fn emv_get_uid(data: *const EmvData, uid_len: *mut usize) -> *const u8;
+}
+extern "C" {
+    pub fn emv_set_uid(data: *mut EmvData, uid: *const u8, uid_len: usize) -> bool;
+}
+extern "C" {
+    pub fn emv_get_base_data(data: *const EmvData) -> *mut Iso14443_4aData;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_3aPoller {
+    _unused: [u8; 0],
+}
+#[doc = "< An error occured during activation procedure."]
+pub const Iso14443_3aPollerEventTypeError: Iso14443_3aPollerEventType =
+    Iso14443_3aPollerEventType(0);
+#[doc = "< The card was activated by the poller."]
+pub const Iso14443_3aPollerEventTypeReady: Iso14443_3aPollerEventType =
+    Iso14443_3aPollerEventType(1);
+#[repr(transparent)]
+#[doc = "Enumeration of possible Iso14443_3a poller event types."]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso14443_3aPollerEventType(pub core::ffi::c_uchar);
+#[doc = "Iso14443_3a poller event data."]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union Iso14443_3aPollerEventData {
+    #[doc = "< Error code indicating card activation fail reason."]
+    pub error: Iso14443_3aError,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_3aPollerEventData() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_3aPollerEventData> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_3aPollerEventData>(),
+        1usize,
+        concat!("Size of: ", stringify!(Iso14443_3aPollerEventData))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_3aPollerEventData>(),
+        1usize,
+        concat!("Alignment of ", stringify!(Iso14443_3aPollerEventData))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).error) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_3aPollerEventData),
+            "::",
+            stringify!(error)
+        )
+    );
+}
+#[doc = "Iso14443_3a poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_3aPollerEvent {
+    #[doc = "< Type of emmitted event."]
+    pub type_: Iso14443_3aPollerEventType,
+    #[doc = "< Pointer to event specific data."]
+    pub data: *mut Iso14443_3aPollerEventData,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_3aPollerEvent() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_3aPollerEvent> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_3aPollerEvent>(),
+        8usize,
+        concat!("Size of: ", stringify!(Iso14443_3aPollerEvent))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_3aPollerEvent>(),
+        4usize,
+        concat!("Alignment of ", stringify!(Iso14443_3aPollerEvent))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).type_) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_3aPollerEvent),
+            "::",
+            stringify!(type_)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).data) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_3aPollerEvent),
+            "::",
+            stringify!(data)
+        )
+    );
+}
+extern "C" {
+    #[doc = "Transmit and receive Iso14443_3a frames in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
+    pub fn iso14443_3a_poller_txrx(
+        instance: *mut Iso14443_3aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+        fwt: u32,
+    ) -> Iso14443_3aError;
+}
+extern "C" {
+    #[doc = "Transmit and receive Iso14443_3a standard frames in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
+    pub fn iso14443_3a_poller_send_standard_frame(
+        instance: *mut Iso14443_3aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+        fwt: u32,
+    ) -> Iso14443_3aError;
+}
+extern "C" {
+    #[doc = "Transmit and receive Iso14443_3a frames with custom parity bits in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n Custom parity bits must be set in the tx_buffer. The rx_buffer will contain\n the received data with the parity bits.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
+    pub fn iso14443_3a_poller_txrx_custom_parity(
+        instance: *mut Iso14443_3aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+        fwt: u32,
+    ) -> Iso14443_3aError;
+}
+extern "C" {
+    #[doc = "Checks presence of Iso14443_3a complient card.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_3aErrorNone if card is present, an error code otherwise."]
+    pub fn iso14443_3a_poller_check_presence(instance: *mut Iso14443_3aPoller) -> Iso14443_3aError;
+}
+extern "C" {
+    #[doc = "Perform collision resolution procedure.\n\n Must ONLY be used inside the callback function.\n\n Perfoms the collision resolution procedure as defined in Iso14443-3a. The iso14443_3a_data\n field will be filled with Iso14443-3a data on success.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `iso14443_3a_data` (direction out) - pointer to the Iso14443_3a data structure to be filled.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
+    pub fn iso14443_3a_poller_activate(
+        instance: *mut Iso14443_3aPoller,
+        iso14443_3a_data: *mut Iso14443_3aData,
+    ) -> Iso14443_3aError;
+}
+extern "C" {
+    #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_3aPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
+    pub fn iso14443_3a_poller_halt(instance: *mut Iso14443_3aPoller) -> Iso14443_3aError;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_4aPoller {
+    _unused: [u8; 0],
+}
+#[doc = "< An error occured during activation procedure."]
+pub const Iso14443_4aPollerEventTypeError: Iso14443_4aPollerEventType =
+    Iso14443_4aPollerEventType(0);
+#[doc = "< The card was activated by the poller."]
+pub const Iso14443_4aPollerEventTypeReady: Iso14443_4aPollerEventType =
+    Iso14443_4aPollerEventType(1);
+#[repr(transparent)]
+#[doc = "Enumeration of possible Iso14443_4a poller event types."]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso14443_4aPollerEventType(pub core::ffi::c_uchar);
+#[doc = "Iso14443_4a poller event data."]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union Iso14443_4aPollerEventData {
+    #[doc = "< Error code indicating card activation fail reason."]
+    pub error: Iso14443_4aError,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_4aPollerEventData() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aPollerEventData> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_4aPollerEventData>(),
+        1usize,
+        concat!("Size of: ", stringify!(Iso14443_4aPollerEventData))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_4aPollerEventData>(),
+        1usize,
+        concat!("Alignment of ", stringify!(Iso14443_4aPollerEventData))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).error) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aPollerEventData),
+            "::",
+            stringify!(error)
+        )
+    );
+}
+#[doc = "Iso14443_4a poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso14443_4aPollerEvent {
+    #[doc = "< Type of emmitted event."]
+    pub type_: Iso14443_4aPollerEventType,
+    #[doc = "< Pointer to event specific data."]
+    pub data: *mut Iso14443_4aPollerEventData,
+}
+#[test]
+fn bindgen_test_layout_Iso14443_4aPollerEvent() {
+    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aPollerEvent> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<Iso14443_4aPollerEvent>(),
+        8usize,
+        concat!("Size of: ", stringify!(Iso14443_4aPollerEvent))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<Iso14443_4aPollerEvent>(),
+        4usize,
+        concat!("Alignment of ", stringify!(Iso14443_4aPollerEvent))
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).type_) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aPollerEvent),
+            "::",
+            stringify!(type_)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).data) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(Iso14443_4aPollerEvent),
+            "::",
+            stringify!(data)
+        )
+    );
+}
+extern "C" {
+    #[doc = "Transmit and receive Iso14443_4a blocks in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer. The fwt parameter is calculated during activation procedure.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_send_block(
+        instance: *mut Iso14443_4aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+    ) -> Iso14443_4aError;
+}
+extern "C" {
+    pub fn iso14443_4a_poller_send_block_pwt_ext(
+        instance: *mut Iso14443_4aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+    ) -> Iso14443_4aError;
+}
+extern "C" {
+    #[doc = "Transmit and receive Iso14443_4a chained block in poller mode. Also it\n automatically modifies PCB packet byte with appropriate bits then resets them back\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer. The fwt parameter is calculated during activation procedure.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_send_chain_block(
+        instance: *mut Iso14443_4aPoller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+    ) -> Iso14443_4aError;
+}
+extern "C" {
+    #[doc = "Transmit Iso14443_4a R-block in poller mode. This block never contains\n data, but can contain CID and NAD, therefore in tx_buffer only two bytes can be added.\n The first one will represent CID, the second one will represent NAD.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with R-block repsonse\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `acknowledged` (direction in) - Sets appropriate bit in PCB byte. True - ACK, false - NAK\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_send_receive_ready_block(
+        instance: *mut Iso14443_4aPoller,
+        acknowledged: bool,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+    ) -> Iso14443_4aError;
+}
+extern "C" {
+    #[doc = "Transmit Iso14443_4a S-block in poller mode. S-block used to exchange control\n information between the card and the reader. Two different types of S-blocks\n are defined:\n - Waiting time extension containing a 1 byte long INF field and (deselect = false)\n - DESELECT containing no INF field (deselect = true)\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with R-block repsonse\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `deselect` (direction in) - Sets appropriate bit in PCB byte.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_send_supervisory_block(
+        instance: *mut Iso14443_4aPoller,
+        deselect: bool,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+    ) -> Iso14443_4aError;
+}
+extern "C" {
+    #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_4aPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_halt(instance: *mut Iso14443_4aPoller) -> Iso14443_4aError;
+}
+extern "C" {
+    #[doc = "Read Answer To Select (ATS) from the card.\n\n Must ONLY be used inside the callback function.\n\n Send Request Answer To Select (RATS) command to the card and parse the response.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the buffer to be filled with ATS data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
+    pub fn iso14443_4a_poller_read_ats(
+        instance: *mut Iso14443_4aPoller,
+        data: *mut Iso14443_4aAtsData,
+    ) -> Iso14443_4aError;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct EmvPoller {
+    _unused: [u8; 0],
+}
+extern "C" {
+    pub fn emv_poller_select_ppse(instance: *mut EmvPoller) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_select_application(instance: *mut EmvPoller) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_get_processing_options(instance: *mut EmvPoller) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_read_sfi_record(
+        instance: *mut EmvPoller,
+        sfi: u8,
+        record_num: u8,
+    ) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_read_afl(
+        instance: *mut EmvPoller,
+        bruteforce_sfi: bool,
+        readed_mask: *mut u16,
+    ) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_read_log_entry(instance: *mut EmvPoller) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_get_pin_try_counter(instance: *mut EmvPoller) -> EmvError;
+}
+extern "C" {
+    pub fn emv_poller_get_last_online_atc(instance: *mut EmvPoller) -> EmvError;
 }
 pub const FelicaErrorNone: FelicaError = FelicaError(0);
 pub const FelicaErrorNotPresent: FelicaError = FelicaError(1);
@@ -29173,6 +31234,16 @@ extern "C" {
     ) -> FelicaError;
 }
 extern "C" {
+    #[doc = "Performs felica read operation for blocks provided as parameters\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `block_count` (direction in) - Amount of blocks involved in reading procedure\n * `block_numbers` (direction in) - Array with block indexes according to felica docs\n * `service_code` (direction in) - Service code for the read operation\n * `response_ptr` (direction out) - Pointer to the response structure\n # Returns\n\nFelicaErrorNone on success, an error code on failure."]
+    pub fn felica_poller_read_blocks(
+        instance: *mut FelicaPoller,
+        block_count: u8,
+        block_numbers: *const u8,
+        service_code: u16,
+        response_ptr: *mut *mut FelicaPollerReadCommandResponse,
+    ) -> FelicaError;
+}
+extern "C" {
     pub fn felica_poller_sync_read(
         nfc: *mut Nfc,
         data: *mut FelicaData,
@@ -29267,141 +31338,6 @@ fn bindgen_test_layout_Iso14443_3aListenerEvent() {
             stringify!(data)
         )
     );
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_3aPoller {
-    _unused: [u8; 0],
-}
-#[doc = "< An error occured during activation procedure."]
-pub const Iso14443_3aPollerEventTypeError: Iso14443_3aPollerEventType =
-    Iso14443_3aPollerEventType(0);
-#[doc = "< The card was activated by the poller."]
-pub const Iso14443_3aPollerEventTypeReady: Iso14443_3aPollerEventType =
-    Iso14443_3aPollerEventType(1);
-#[repr(transparent)]
-#[doc = "Enumeration of possible Iso14443_3a poller event types."]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso14443_3aPollerEventType(pub core::ffi::c_uchar);
-#[doc = "Iso14443_3a poller event data."]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union Iso14443_3aPollerEventData {
-    #[doc = "< Error code indicating card activation fail reason."]
-    pub error: Iso14443_3aError,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_3aPollerEventData() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_3aPollerEventData> =
-        ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_3aPollerEventData>(),
-        1usize,
-        concat!("Size of: ", stringify!(Iso14443_3aPollerEventData))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_3aPollerEventData>(),
-        1usize,
-        concat!("Alignment of ", stringify!(Iso14443_3aPollerEventData))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).error) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_3aPollerEventData),
-            "::",
-            stringify!(error)
-        )
-    );
-}
-#[doc = "Iso14443_3a poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_3aPollerEvent {
-    #[doc = "< Type of emmitted event."]
-    pub type_: Iso14443_3aPollerEventType,
-    #[doc = "< Pointer to event specific data."]
-    pub data: *mut Iso14443_3aPollerEventData,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_3aPollerEvent() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_3aPollerEvent> =
-        ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_3aPollerEvent>(),
-        8usize,
-        concat!("Size of: ", stringify!(Iso14443_3aPollerEvent))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_3aPollerEvent>(),
-        4usize,
-        concat!("Alignment of ", stringify!(Iso14443_3aPollerEvent))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).type_) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_3aPollerEvent),
-            "::",
-            stringify!(type_)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).data) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_3aPollerEvent),
-            "::",
-            stringify!(data)
-        )
-    );
-}
-extern "C" {
-    #[doc = "Transmit and receive Iso14443_3a frames in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
-    pub fn iso14443_3a_poller_txrx(
-        instance: *mut Iso14443_3aPoller,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-        fwt: u32,
-    ) -> Iso14443_3aError;
-}
-extern "C" {
-    #[doc = "Transmit and receive Iso14443_3a standard frames in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
-    pub fn iso14443_3a_poller_send_standard_frame(
-        instance: *mut Iso14443_3aPoller,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-        fwt: u32,
-    ) -> Iso14443_3aError;
-}
-extern "C" {
-    #[doc = "Transmit and receive Iso14443_3a frames with custom parity bits in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n Custom parity bits must be set in the tx_buffer. The rx_buffer will contain\n the received data with the parity bits.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
-    pub fn iso14443_3a_poller_txrx_custom_parity(
-        instance: *mut Iso14443_3aPoller,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-        fwt: u32,
-    ) -> Iso14443_3aError;
-}
-extern "C" {
-    #[doc = "Checks presence of Iso14443_3a complient card.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_3aErrorNone if card is present, an error code otherwise."]
-    pub fn iso14443_3a_poller_check_presence(instance: *mut Iso14443_3aPoller) -> Iso14443_3aError;
-}
-extern "C" {
-    #[doc = "Perform collision resolution procedure.\n\n Must ONLY be used inside the callback function.\n\n Perfoms the collision resolution procedure as defined in Iso14443-3a. The iso14443_3a_data\n field will be filled with Iso14443-3a data on success.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `iso14443_3a_data` (direction out) - pointer to the Iso14443_3a data structure to be filled.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
-    pub fn iso14443_3a_poller_activate(
-        instance: *mut Iso14443_3aPoller,
-        iso14443_3a_data: *mut Iso14443_3aData,
-    ) -> Iso14443_3aError;
-}
-extern "C" {
-    #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_3aPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_3aErrorNone on success, an error code on failure."]
-    pub fn iso14443_3a_poller_halt(instance: *mut Iso14443_3aPoller) -> Iso14443_3aError;
 }
 extern "C" {
     pub fn iso14443_3a_poller_sync_read(
@@ -29627,353 +31563,6 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct SimpleArray {
-    _unused: [u8; 0],
-}
-pub type SimpleArrayData = core::ffi::c_void;
-pub type SimpleArrayElement = core::ffi::c_void;
-pub type SimpleArrayInit =
-    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
-pub type SimpleArrayReset =
-    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
-pub type SimpleArrayCopy = ::core::option::Option<
-    unsafe extern "C" fn(elem: *mut SimpleArrayElement, other: *const SimpleArrayElement),
->;
-#[doc = "Simple Array configuration structure. Defined per type."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct SimpleArrayConfig {
-    #[doc = "< Initialisation (in-place constructor) method."]
-    pub init: SimpleArrayInit,
-    #[doc = "< Reset (custom destructor) method."]
-    pub reset: SimpleArrayReset,
-    #[doc = "< Copy (custom copy-constructor) method."]
-    pub copy: SimpleArrayCopy,
-    pub type_size: usize,
-}
-#[test]
-fn bindgen_test_layout_SimpleArrayConfig() {
-    const UNINIT: ::core::mem::MaybeUninit<SimpleArrayConfig> = ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<SimpleArrayConfig>(),
-        16usize,
-        concat!("Size of: ", stringify!(SimpleArrayConfig))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<SimpleArrayConfig>(),
-        4usize,
-        concat!("Alignment of ", stringify!(SimpleArrayConfig))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).init) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(SimpleArrayConfig),
-            "::",
-            stringify!(init)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).reset) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(SimpleArrayConfig),
-            "::",
-            stringify!(reset)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).copy) as usize - ptr as usize },
-        8usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(SimpleArrayConfig),
-            "::",
-            stringify!(copy)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).type_size) as usize - ptr as usize },
-        12usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(SimpleArrayConfig),
-            "::",
-            stringify!(type_size)
-        )
-    );
-}
-extern "C" {
-    #[doc = "Allocate a SimpleArray instance with the given configuration.\n\n # Arguments\n\n* `[in]` - config Pointer to the type-specific configuration\n # Returns\n\nPointer to the allocated SimpleArray instance"]
-    pub fn simple_array_alloc(config: *const SimpleArrayConfig) -> *mut SimpleArray;
-}
-extern "C" {
-    #[doc = "Free a SimpleArray instance and release its contents.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be freed"]
-    pub fn simple_array_free(instance: *mut SimpleArray);
-}
-extern "C" {
-    #[doc = "Initialise a SimpleArray instance by allocating additional space to contain\n the requested number of elements.\n If init() is specified in the config, then it is called for each element,\n otherwise the data is filled with zeroes.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be init'd\n * `[in]` - count Number of elements to be allocated and init'd"]
-    pub fn simple_array_init(instance: *mut SimpleArray, count: u32);
-}
-extern "C" {
-    #[doc = "Reset a SimpleArray instance and delete all of its elements.\n If reset() is specified in the config, then it is called for each element,\n otherwise the data is simply free()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be reset"]
-    pub fn simple_array_reset(instance: *mut SimpleArray);
-}
-extern "C" {
-    #[doc = "Copy (duplicate) another SimpleArray instance to this one.\n If copy() is specified in the config, then it is called for each element,\n otherwise the data is simply memcpy()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to copy to\n * `[in]` - other Pointer to the SimpleArray instance to copy from"]
-    pub fn simple_array_copy(instance: *mut SimpleArray, other: *const SimpleArray);
-}
-extern "C" {
-    #[doc = "Check if another SimpleArray instance is equal (the same object or holds the\n same data) to this one.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be compared\n * `[in]` - other Pointer to the SimpleArray instance to be compared\n # Returns\n\nTrue if instances are considered equal, false otherwise"]
-    pub fn simple_array_is_equal(instance: *const SimpleArray, other: *const SimpleArray) -> bool;
-}
-extern "C" {
-    #[doc = "Get the count of elements currently contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to query the count from\n # Returns\n\nCount of elements contained in the instance"]
-    pub fn simple_array_get_count(instance: *const SimpleArray) -> u32;
-}
-extern "C" {
-    #[doc = "Get a pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nPointer to the element specified by index"]
-    pub fn simple_array_get(instance: *mut SimpleArray, index: u32) -> *mut SimpleArrayElement;
-}
-extern "C" {
-    #[doc = "Get a const pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nConst pointer to the element specified by index"]
-    pub fn simple_array_cget(instance: *const SimpleArray, index: u32)
-        -> *const SimpleArrayElement;
-}
-extern "C" {
-    #[doc = "Get a pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nPointer to the instance's internal data"]
-    pub fn simple_array_get_data(instance: *mut SimpleArray) -> *mut SimpleArrayData;
-}
-extern "C" {
-    #[doc = "Get a constant pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nConstant pointer to the instance's internal data"]
-    pub fn simple_array_cget_data(instance: *const SimpleArray) -> *const SimpleArrayData;
-}
-extern "C" {
-    pub static simple_array_config_uint8_t: SimpleArrayConfig;
-}
-pub const Iso14443_4aErrorNone: Iso14443_4aError = Iso14443_4aError(0);
-pub const Iso14443_4aErrorNotPresent: Iso14443_4aError = Iso14443_4aError(1);
-pub const Iso14443_4aErrorProtocol: Iso14443_4aError = Iso14443_4aError(2);
-pub const Iso14443_4aErrorTimeout: Iso14443_4aError = Iso14443_4aError(3);
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso14443_4aError(pub core::ffi::c_uchar);
-pub const Iso14443_4aBitRateBoth106Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(0);
-pub const Iso14443_4aBitRatePiccToPcd212Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(1);
-pub const Iso14443_4aBitRatePiccToPcd424Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(2);
-pub const Iso14443_4aBitRatePiccToPcd848Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(3);
-pub const Iso14443_4aBitRatePcdToPicc212Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(4);
-pub const Iso14443_4aBitRatePcdToPicc424Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(5);
-pub const Iso14443_4aBitRatePcdToPicc848Kbit: Iso14443_4aBitRate = Iso14443_4aBitRate(6);
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso14443_4aBitRate(pub core::ffi::c_uchar);
-pub const Iso14443_4aFrameOptionNad: Iso14443_4aFrameOption = Iso14443_4aFrameOption(0);
-pub const Iso14443_4aFrameOptionCid: Iso14443_4aFrameOption = Iso14443_4aFrameOption(1);
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso14443_4aFrameOption(pub core::ffi::c_uchar);
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_4aAtsData {
-    pub tl: u8,
-    pub t0: u8,
-    pub ta_1: u8,
-    pub tb_1: u8,
-    pub tc_1: u8,
-    pub t1_tk: *mut SimpleArray,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_4aAtsData() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aAtsData> = ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_4aAtsData>(),
-        12usize,
-        concat!("Size of: ", stringify!(Iso14443_4aAtsData))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_4aAtsData>(),
-        4usize,
-        concat!("Alignment of ", stringify!(Iso14443_4aAtsData))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).tl) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(tl)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).t0) as usize - ptr as usize },
-        1usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(t0)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).ta_1) as usize - ptr as usize },
-        2usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(ta_1)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).tb_1) as usize - ptr as usize },
-        3usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(tb_1)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).tc_1) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(tc_1)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).t1_tk) as usize - ptr as usize },
-        8usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aAtsData),
-            "::",
-            stringify!(t1_tk)
-        )
-    );
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_4aData {
-    pub iso14443_3a_data: *mut Iso14443_3aData,
-    pub ats_data: Iso14443_4aAtsData,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_4aData() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aData> = ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_4aData>(),
-        16usize,
-        concat!("Size of: ", stringify!(Iso14443_4aData))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_4aData>(),
-        4usize,
-        concat!("Alignment of ", stringify!(Iso14443_4aData))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).iso14443_3a_data) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aData),
-            "::",
-            stringify!(iso14443_3a_data)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).ats_data) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aData),
-            "::",
-            stringify!(ats_data)
-        )
-    );
-}
-extern "C" {
-    pub fn iso14443_4a_alloc() -> *mut Iso14443_4aData;
-}
-extern "C" {
-    pub fn iso14443_4a_free(data: *mut Iso14443_4aData);
-}
-extern "C" {
-    pub fn iso14443_4a_reset(data: *mut Iso14443_4aData);
-}
-extern "C" {
-    pub fn iso14443_4a_copy(data: *mut Iso14443_4aData, other: *const Iso14443_4aData);
-}
-extern "C" {
-    pub fn iso14443_4a_verify(data: *mut Iso14443_4aData, device_type: *const FuriString) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_load(
-        data: *mut Iso14443_4aData,
-        ff: *mut FlipperFormat,
-        version: u32,
-    ) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_save(data: *const Iso14443_4aData, ff: *mut FlipperFormat) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_is_equal(
-        data: *const Iso14443_4aData,
-        other: *const Iso14443_4aData,
-    ) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_get_device_name(
-        data: *const Iso14443_4aData,
-        name_type: NfcDeviceNameType,
-    ) -> *const core::ffi::c_char;
-}
-extern "C" {
-    pub fn iso14443_4a_get_uid(data: *const Iso14443_4aData, uid_len: *mut usize) -> *const u8;
-}
-extern "C" {
-    pub fn iso14443_4a_set_uid(data: *mut Iso14443_4aData, uid: *const u8, uid_len: usize) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_get_base_data(data: *const Iso14443_4aData) -> *mut Iso14443_3aData;
-}
-extern "C" {
-    pub fn iso14443_4a_get_frame_size_max(data: *const Iso14443_4aData) -> u16;
-}
-extern "C" {
-    pub fn iso14443_4a_get_fwt_fc_max(data: *const Iso14443_4aData) -> u32;
-}
-extern "C" {
-    pub fn iso14443_4a_get_historical_bytes(
-        data: *const Iso14443_4aData,
-        count: *mut u32,
-    ) -> *const u8;
-}
-extern "C" {
-    pub fn iso14443_4a_supports_bit_rate(
-        data: *const Iso14443_4aData,
-        bit_rate: Iso14443_4aBitRate,
-    ) -> bool;
-}
-extern "C" {
-    pub fn iso14443_4a_supports_frame_option(
-        data: *const Iso14443_4aData,
-        option: Iso14443_4aFrameOption,
-    ) -> bool;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 pub struct Iso14443_4aListener {
     _unused: [u8; 0],
 }
@@ -30058,144 +31647,6 @@ fn bindgen_test_layout_Iso14443_4aListenerEvent() {
             stringify!(data)
         )
     );
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_4aPoller {
-    _unused: [u8; 0],
-}
-#[doc = "< An error occured during activation procedure."]
-pub const Iso14443_4aPollerEventTypeError: Iso14443_4aPollerEventType =
-    Iso14443_4aPollerEventType(0);
-#[doc = "< The card was activated by the poller."]
-pub const Iso14443_4aPollerEventTypeReady: Iso14443_4aPollerEventType =
-    Iso14443_4aPollerEventType(1);
-#[repr(transparent)]
-#[doc = "Enumeration of possible Iso14443_4a poller event types."]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso14443_4aPollerEventType(pub core::ffi::c_uchar);
-#[doc = "Iso14443_4a poller event data."]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union Iso14443_4aPollerEventData {
-    #[doc = "< Error code indicating card activation fail reason."]
-    pub error: Iso14443_4aError,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_4aPollerEventData() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aPollerEventData> =
-        ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_4aPollerEventData>(),
-        1usize,
-        concat!("Size of: ", stringify!(Iso14443_4aPollerEventData))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_4aPollerEventData>(),
-        1usize,
-        concat!("Alignment of ", stringify!(Iso14443_4aPollerEventData))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).error) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aPollerEventData),
-            "::",
-            stringify!(error)
-        )
-    );
-}
-#[doc = "Iso14443_4a poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso14443_4aPollerEvent {
-    #[doc = "< Type of emmitted event."]
-    pub type_: Iso14443_4aPollerEventType,
-    #[doc = "< Pointer to event specific data."]
-    pub data: *mut Iso14443_4aPollerEventData,
-}
-#[test]
-fn bindgen_test_layout_Iso14443_4aPollerEvent() {
-    const UNINIT: ::core::mem::MaybeUninit<Iso14443_4aPollerEvent> =
-        ::core::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::core::mem::size_of::<Iso14443_4aPollerEvent>(),
-        8usize,
-        concat!("Size of: ", stringify!(Iso14443_4aPollerEvent))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<Iso14443_4aPollerEvent>(),
-        4usize,
-        concat!("Alignment of ", stringify!(Iso14443_4aPollerEvent))
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).type_) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aPollerEvent),
-            "::",
-            stringify!(type_)
-        )
-    );
-    assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).data) as usize - ptr as usize },
-        4usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(Iso14443_4aPollerEvent),
-            "::",
-            stringify!(data)
-        )
-    );
-}
-extern "C" {
-    #[doc = "Transmit and receive Iso14443_4a blocks in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer. The fwt parameter is calculated during activation procedure.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_send_block(
-        instance: *mut Iso14443_4aPoller,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-    ) -> Iso14443_4aError;
-}
-extern "C" {
-    #[doc = "Transmit and receive Iso14443_4a chained block in poller mode. Also it\n automatically modifies PCB packet byte with appropriate bits then resets them back\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer. The fwt parameter is calculated during activation procedure.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_send_chain_block(
-        instance: *mut Iso14443_4aPoller,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-    ) -> Iso14443_4aError;
-}
-extern "C" {
-    #[doc = "Transmit Iso14443_4a R-block in poller mode. This block never contains\n data, but can contain CID and NAD, therefore in tx_buffer only two bytes can be added.\n The first one will represent CID, the second one will represent NAD.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with R-block repsonse\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `acknowledged` (direction in) - Sets appropriate bit in PCB byte. True - ACK, false - NAK\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_send_receive_ready_block(
-        instance: *mut Iso14443_4aPoller,
-        acknowledged: bool,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-    ) -> Iso14443_4aError;
-}
-extern "C" {
-    #[doc = "Transmit Iso14443_4a S-block in poller mode. S-block used to exchange control\n information between the card and the reader. Two different types of S-blocks\n are defined:\n - Waiting time extension containing a 1 byte long INF field and (deselect = false)\n - DESELECT containing no INF field (deselect = true)\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with R-block repsonse\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `deselect` (direction in) - Sets appropriate bit in PCB byte.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_send_supervisory_block(
-        instance: *mut Iso14443_4aPoller,
-        deselect: bool,
-        tx_buffer: *const BitBuffer,
-        rx_buffer: *mut BitBuffer,
-    ) -> Iso14443_4aError;
-}
-extern "C" {
-    #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_4aPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_halt(instance: *mut Iso14443_4aPoller) -> Iso14443_4aError;
-}
-extern "C" {
-    #[doc = "Read Answer To Select (ATS) from the card.\n\n Must ONLY be used inside the callback function.\n\n Send Request Answer To Select (RATS) command to the card and parse the response.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the buffer to be filled with ATS data.\n # Returns\n\nIso14443_4aErrorNone on success, an error code on failure."]
-    pub fn iso14443_4a_poller_read_ats(
-        instance: *mut Iso14443_4aPoller,
-        data: *mut Iso14443_4aAtsData,
-    ) -> Iso14443_4aError;
 }
 pub const Iso14443_4bErrorNone: Iso14443_4bError = Iso14443_4bError(0);
 pub const Iso14443_4bErrorNotPresent: Iso14443_4bError = Iso14443_4bError(1);
@@ -31393,6 +32844,26 @@ extern "C" {
         data: *mut MfClassicData,
     ) -> MfClassicError;
 }
+pub const MfDesfireTypeMF3ICD40: MfDesfireType = MfDesfireType(0);
+pub const MfDesfireTypeEV1: MfDesfireType = MfDesfireType(1);
+pub const MfDesfireTypeEV2: MfDesfireType = MfDesfireType(2);
+pub const MfDesfireTypeEV2XL: MfDesfireType = MfDesfireType(3);
+pub const MfDesfireTypeEV3: MfDesfireType = MfDesfireType(4);
+pub const MfDesfireTypeUnknown: MfDesfireType = MfDesfireType(5);
+pub const MfDesfireTypeNum: MfDesfireType = MfDesfireType(6);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct MfDesfireType(pub core::ffi::c_uchar);
+pub const MfDesfireSize2k: MfDesfireSize = MfDesfireSize(0);
+pub const MfDesfireSize4k: MfDesfireSize = MfDesfireSize(1);
+pub const MfDesfireSize8k: MfDesfireSize = MfDesfireSize(2);
+pub const MfDesfireSize16k: MfDesfireSize = MfDesfireSize(3);
+pub const MfDesfireSize32k: MfDesfireSize = MfDesfireSize(4);
+pub const MfDesfireSizeUnknown: MfDesfireSize = MfDesfireSize(5);
+pub const MfDesfireSizeNum: MfDesfireSize = MfDesfireSize(6);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct MfDesfireSize(pub core::ffi::c_uchar);
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct MfDesfireVersion {
@@ -31755,6 +33226,7 @@ pub const MfDesfireFileTypeBackup: MfDesfireFileType = MfDesfireFileType(1);
 pub const MfDesfireFileTypeValue: MfDesfireFileType = MfDesfireFileType(2);
 pub const MfDesfireFileTypeLinearRecord: MfDesfireFileType = MfDesfireFileType(3);
 pub const MfDesfireFileTypeCyclicRecord: MfDesfireFileType = MfDesfireFileType(4);
+pub const MfDesfireFileTypeTransactionMac: MfDesfireFileType = MfDesfireFileType(5);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct MfDesfireFileType(pub core::ffi::c_uchar);
@@ -31784,6 +33256,7 @@ pub union MfDesfireFileSettings__bindgen_ty_1 {
     pub data: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_1,
     pub value: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_2,
     pub record: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_3,
+    pub transaction_mac: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -31951,6 +33424,65 @@ fn bindgen_test_layout_MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_3() {
         )
     );
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4 {
+    pub key_option: u8,
+    pub key_version: u8,
+    pub counter_limit: u32,
+}
+#[test]
+fn bindgen_test_layout_MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4() {
+    const UNINIT: ::core::mem::MaybeUninit<MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4> =
+        ::core::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::core::mem::size_of::<MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4>(),
+        8usize,
+        concat!(
+            "Size of: ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4)
+        )
+    );
+    assert_eq!(
+        ::core::mem::align_of::<MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4>(),
+        4usize,
+        concat!(
+            "Alignment of ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).key_option) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4),
+            "::",
+            stringify!(key_option)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).key_version) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4),
+            "::",
+            stringify!(key_version)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).counter_limit) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_4),
+            "::",
+            stringify!(counter_limit)
+        )
+    );
+}
 #[test]
 fn bindgen_test_layout_MfDesfireFileSettings__bindgen_ty_1() {
     const UNINIT: ::core::mem::MaybeUninit<MfDesfireFileSettings__bindgen_ty_1> =
@@ -31997,6 +33529,16 @@ fn bindgen_test_layout_MfDesfireFileSettings__bindgen_ty_1() {
             stringify!(MfDesfireFileSettings__bindgen_ty_1),
             "::",
             stringify!(record)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).transaction_mac) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(MfDesfireFileSettings__bindgen_ty_1),
+            "::",
+            stringify!(transaction_mac)
         )
     );
 }
@@ -32197,6 +33739,7 @@ pub const MfDesfireErrorNotPresent: MfDesfireError = MfDesfireError(1);
 pub const MfDesfireErrorProtocol: MfDesfireError = MfDesfireError(2);
 pub const MfDesfireErrorTimeout: MfDesfireError = MfDesfireError(3);
 pub const MfDesfireErrorAuthentication: MfDesfireError = MfDesfireError(4);
+pub const MfDesfireErrorCommandNotSupported: MfDesfireError = MfDesfireError(5);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct MfDesfireError(pub core::ffi::c_uchar);
@@ -32210,6 +33753,7 @@ pub struct MfDesfireData {
     pub master_key_versions: *mut SimpleArray,
     pub application_ids: *mut SimpleArray,
     pub applications: *mut SimpleArray,
+    pub device_name: *mut FuriString,
 }
 #[test]
 fn bindgen_test_layout_MfDesfireData() {
@@ -32217,7 +33761,7 @@ fn bindgen_test_layout_MfDesfireData() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<MfDesfireData>(),
-        60usize,
+        64usize,
         concat!("Size of: ", stringify!(MfDesfireData))
     );
     assert_eq!(
@@ -32293,6 +33837,16 @@ fn bindgen_test_layout_MfDesfireData() {
             stringify!(MfDesfireData),
             "::",
             stringify!(applications)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).device_name) as usize - ptr as usize },
+        60usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(MfDesfireData),
+            "::",
+            stringify!(device_name)
         )
     );
 }
@@ -34659,6 +36213,7 @@ extern "C" {
     pub fn mf_ultralight_poller_sync_read_card(
         nfc: *mut Nfc,
         data: *mut MfUltralightData,
+        auth_context: *const MfUltralightPollerAuthContext,
     ) -> MfUltralightError;
 }
 pub const Iso15693_3ErrorNone: Iso15693_3Error = Iso15693_3Error(0);
@@ -37006,6 +38561,21 @@ fn bindgen_test_layout_SubGhzBlockConst() {
         )
     );
 }
+extern "C" {
+    pub fn subghz_custom_btn_set(btn_id: u8) -> bool;
+}
+extern "C" {
+    pub fn subghz_custom_btn_get() -> u8;
+}
+extern "C" {
+    pub fn subghz_custom_btn_get_original() -> u8;
+}
+extern "C" {
+    pub fn subghz_custom_btns_reset();
+}
+extern "C" {
+    pub fn subghz_custom_btn_is_allowed() -> bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SubGhzBlockDecoder {
@@ -37201,7 +38771,7 @@ pub struct SubGhzEnvironment {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SubGhzProtocolRegistry {
-    pub items: *mut *const SubGhzProtocol,
+    pub items: *const *const SubGhzProtocol,
     pub size: usize,
 }
 #[test]
@@ -37496,6 +39066,10 @@ extern "C" {
         instance: *mut SubGhzEnvironment,
         idx: usize,
     ) -> *const core::ffi::c_char;
+}
+extern "C" {
+    #[doc = "Resetting the parameters used in the keeloq protocol.\n # Arguments\n\n* `instance` - Pointer to a SubGhzEnvironment instance"]
+    pub fn subghz_environment_reset_keeloq(instance: *mut SubGhzEnvironment);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -37816,6 +39390,7 @@ pub const SubGhzProtocolTypeDynamic: SubGhzProtocolType = SubGhzProtocolType(2);
 pub const SubGhzProtocolTypeRAW: SubGhzProtocolType = SubGhzProtocolType(3);
 pub const SubGhzProtocolWeatherStation: SubGhzProtocolType = SubGhzProtocolType(4);
 pub const SubGhzProtocolCustom: SubGhzProtocolType = SubGhzProtocolType(5);
+pub const SubGhzProtocolTypeBinRAW: SubGhzProtocolType = SubGhzProtocolType(6);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct SubGhzProtocolType(pub core::ffi::c_uchar);
@@ -37830,6 +39405,11 @@ pub const SubGhzProtocolFlag_Save: SubGhzProtocolFlag = SubGhzProtocolFlag(128);
 pub const SubGhzProtocolFlag_Load: SubGhzProtocolFlag = SubGhzProtocolFlag(256);
 pub const SubGhzProtocolFlag_Send: SubGhzProtocolFlag = SubGhzProtocolFlag(512);
 pub const SubGhzProtocolFlag_BinRAW: SubGhzProtocolFlag = SubGhzProtocolFlag(1024);
+pub const SubGhzProtocolFlag_StarLine: SubGhzProtocolFlag = SubGhzProtocolFlag(2048);
+pub const SubGhzProtocolFlag_AutoAlarms: SubGhzProtocolFlag = SubGhzProtocolFlag(4096);
+pub const SubGhzProtocolFlag_Magellan: SubGhzProtocolFlag = SubGhzProtocolFlag(8192);
+pub const SubGhzProtocolFlag_Princeton: SubGhzProtocolFlag = SubGhzProtocolFlag(16384);
+pub const SubGhzProtocolFlag_NiceFlorS: SubGhzProtocolFlag = SubGhzProtocolFlag(32768);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct SubGhzProtocolFlag(pub core::ffi::c_ushort);
@@ -37912,10 +39492,13 @@ fn bindgen_test_layout_SubGhzProtocol() {
 pub struct SubGhzBlockGeneric {
     pub protocol_name: *const core::ffi::c_char,
     pub data: u64,
+    pub data_2: u64,
     pub serial: u32,
     pub data_count_bit: u16,
     pub btn: u8,
     pub cnt: u32,
+    pub cnt_2: u8,
+    pub seed: u32,
 }
 #[test]
 fn bindgen_test_layout_SubGhzBlockGeneric() {
@@ -37923,7 +39506,7 @@ fn bindgen_test_layout_SubGhzBlockGeneric() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<SubGhzBlockGeneric>(),
-        32usize,
+        48usize,
         concat!("Size of: ", stringify!(SubGhzBlockGeneric))
     );
     assert_eq!(
@@ -37952,8 +39535,18 @@ fn bindgen_test_layout_SubGhzBlockGeneric() {
         )
     );
     assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).serial) as usize - ptr as usize },
+        unsafe { ::core::ptr::addr_of!((*ptr).data_2) as usize - ptr as usize },
         16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzBlockGeneric),
+            "::",
+            stringify!(data_2)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).serial) as usize - ptr as usize },
+        24usize,
         concat!(
             "Offset of field: ",
             stringify!(SubGhzBlockGeneric),
@@ -37963,7 +39556,7 @@ fn bindgen_test_layout_SubGhzBlockGeneric() {
     );
     assert_eq!(
         unsafe { ::core::ptr::addr_of!((*ptr).data_count_bit) as usize - ptr as usize },
-        20usize,
+        28usize,
         concat!(
             "Offset of field: ",
             stringify!(SubGhzBlockGeneric),
@@ -37973,7 +39566,7 @@ fn bindgen_test_layout_SubGhzBlockGeneric() {
     );
     assert_eq!(
         unsafe { ::core::ptr::addr_of!((*ptr).btn) as usize - ptr as usize },
-        22usize,
+        30usize,
         concat!(
             "Offset of field: ",
             stringify!(SubGhzBlockGeneric),
@@ -37983,12 +39576,32 @@ fn bindgen_test_layout_SubGhzBlockGeneric() {
     );
     assert_eq!(
         unsafe { ::core::ptr::addr_of!((*ptr).cnt) as usize - ptr as usize },
-        24usize,
+        32usize,
         concat!(
             "Offset of field: ",
             stringify!(SubGhzBlockGeneric),
             "::",
             stringify!(cnt)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).cnt_2) as usize - ptr as usize },
+        36usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzBlockGeneric),
+            "::",
+            stringify!(cnt_2)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).seed) as usize - ptr as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SubGhzBlockGeneric),
+            "::",
+            stringify!(seed)
         )
     );
 }
@@ -38162,7 +39775,7 @@ extern "C" {
     ) -> bool;
 }
 extern "C" {
-    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderKeeloq instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Container value, 16 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderKeeloq instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Counter value, 16 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
     pub fn subghz_protocol_keeloq_create_data(
         context: *mut core::ffi::c_void,
         flipper_format: *mut FlipperFormat,
@@ -38170,6 +39783,99 @@ extern "C" {
         btn: u8,
         cnt: u16,
         manufacture_name: *const core::ffi::c_char,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation for BFT.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderKeeloq instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Counter value, 16 bit\n * `seed` - Seed value, 32 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_keeloq_bft_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
+        seed: u32,
+        manufacture_name: *const core::ffi::c_char,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderFaacSLH instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Counter value, 16 bit\n * `seed` - Seed value, 32 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_faac_slh_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u32,
+        seed: u32,
+        manufacture_name: *const core::ffi::c_char,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderAlutech_at_4n instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 24 bit\n * `btn` - Button number, 8 bit\n * `cnt` - Counter value, 16 bit\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_alutech_at_4n_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderCameAtomo instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 24 bit\n * `cnt` - Counter value, 16 bit\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_came_atomo_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        cnt: u16,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "New remote generation.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderNiceFlorS instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number\n * `btn` - Button number, 4 bit\n * `cnt` - Counter value, 16 bit\n * `preset` - Modulation, SubGhzRadioPreset\n * `nice_one` - Nice One if true, Nice Flor S if false\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_nice_flor_s_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
+        preset: *mut SubGhzRadioPreset,
+        nice_one: bool,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderStarLine instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 24 bit\n * `btn` - Button number, 8 bit\n * `cnt` - Counter value, 16 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_star_line_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
+        manufacture_name: *const core::ffi::c_char,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderSomfyTelis instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 24 bit\n * `btn` - Button number, 8 bit\n * `cnt` - Counter value, 16 bit\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_somfy_telis_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
+        preset: *mut SubGhzRadioPreset,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderSomfyKeytis instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 24 bit\n * `btn` - Button number, 8 bit\n * `cnt` - Counter value, 16 bit\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    pub fn subghz_protocol_somfy_keytis_create_data(
+        context: *mut core::ffi::c_void,
+        flipper_format: *mut FlipperFormat,
+        serial: u32,
+        btn: u8,
+        cnt: u16,
         preset: *mut SubGhzRadioPreset,
     ) -> bool;
 }
@@ -38498,6 +40204,13 @@ extern "C" {
     pub fn subghz_file_encoder_worker_free(instance: *mut SubGhzFileEncoderWorker);
 }
 extern "C" {
+    #[doc = "Get a description of the progress.\n # Arguments\n\n* `instance` - Pointer to a SubGhzFileEncoderWorker instance\n * `output` -"]
+    pub fn subghz_file_encoder_worker_get_text_progress(
+        instance: *mut SubGhzFileEncoderWorker,
+        output: *mut FuriString,
+    );
+}
+extern "C" {
     #[doc = "Getting the level and duration of the upload to be loaded into DMA.\n # Arguments\n\n* `context` - Pointer to a SubGhzFileEncoderWorker instance\n # Returns\n\nLevelDuration"]
     pub fn subghz_file_encoder_worker_get_level_duration(
         context: *mut core::ffi::c_void,
@@ -38593,6 +40306,15 @@ extern "C" {
 }
 extern "C" {
     pub fn subghz_setting_get_default_frequency(instance: *mut SubGhzSetting) -> u32;
+}
+extern "C" {
+    pub fn subghz_setting_set_default_frequency(
+        instance: *mut SubGhzSetting,
+        frequency_to_setup: u32,
+    );
+}
+extern "C" {
+    pub fn subghz_setting_customs_presets_to_log(instance: *mut SubGhzSetting) -> u8;
 }
 extern "C" {
     pub fn subghz_devices_init();
@@ -39327,8 +41049,30 @@ extern "C" {
     );
 }
 extern "C" {
-    #[doc = "Generates random name\n\n # Arguments\n\n* `name` - buffer to write random name\n * `max_name_size` - length of given buffer"]
+    pub fn name_generator_make_auto_datetime(
+        name: *mut core::ffi::c_char,
+        max_name_size: usize,
+        prefix: *const core::ffi::c_char,
+        custom_time: *mut DateTime,
+    );
+}
+extern "C" {
+    pub fn name_generator_make_auto_basic(
+        name: *mut core::ffi::c_char,
+        max_name_size: usize,
+        prefix: *const core::ffi::c_char,
+    );
+}
+extern "C" {
+    #[doc = "Generates random name\n\n # Arguments\n\n* `name` - buffer to write random name\n * `max_name_size` - length of given buffer\n * `prefix` (direction in) - The prefix of the name"]
     pub fn name_generator_make_random(name: *mut core::ffi::c_char, max_name_size: usize);
+}
+extern "C" {
+    pub fn name_generator_make_random_prefixed(
+        name: *mut core::ffi::c_char,
+        max_name_size: usize,
+        prefix: *const core::ffi::c_char,
+    );
 }
 extern "C" {
     #[doc = "Generates detailed name\n\n # Arguments\n\n* `name` - buffer to write random name\n * `max_name_size` - length of given buffer\n * `prefix` (direction in) - The prefix of the name"]
@@ -39336,6 +41080,14 @@ extern "C" {
         name: *mut core::ffi::c_char,
         max_name_size: usize,
         prefix: *const core::ffi::c_char,
+    );
+}
+extern "C" {
+    pub fn name_generator_make_detailed_datetime(
+        name: *mut core::ffi::c_char,
+        max_name_size: usize,
+        prefix: *const core::ffi::c_char,
+        custom_time: *mut DateTime,
     );
 }
 extern "C" {
@@ -39504,6 +41256,10 @@ extern "C" {
 extern "C" {
     #[doc = "Connects the pipe to the `stdin` and `stdout` of the current thread.\n\n After performing this operation, you can use `getc`, `puts`, etc. to send and\n receive data to and from the pipe. If the pipe becomes broken, C stdlib calls\n will return `EOF` wherever possible.\n\n You can disconnect the pipe by manually calling\n `furi_thread_set_stdout_callback` and `furi_thread_set_stdin_callback` with\n `NULL`.\n\n # Arguments\n\n* `[in]` - pipe Pipe side to connect to the stdio"]
     pub fn pipe_install_as_stdio(pipe: *mut PipeSide);
+}
+extern "C" {
+    #[doc = "Sets the timeout for `stdout` write operations\n\n > **Note:** This value is set to `FuriWaitForever` when the pipe is created\n\n # Arguments\n\n* `[in]` - pipe Pipe side to set the timeout of\n * `[in]` - timeout Timeout value in ticks"]
+    pub fn pipe_set_stdout_timeout(pipe: *mut PipeSide, timeout: FuriWait);
 }
 extern "C" {
     #[doc = "Receives data from the pipe.\n\n # Arguments\n\n* `[in]` - pipe The pipe side to read data out of\n * `[out]` - data The buffer to fill with data\n * `length` - Maximum length of data to read\n * `timeout` - The timeout (in ticks) after which the read operation is\n interrupted\n # Returns\n\nThe number of bytes actually written into the provided buffer"]
@@ -40780,6 +42536,10 @@ pub struct FuriHalBtSerialRpcStatus(pub core::ffi::c_uchar);
 #[doc = "Serial service callback type"]
 pub type FuriHalBtSerialCallback = SerialServiceEventCallback;
 extern "C" {
+    #[doc = "Serial profile descriptor"]
+    pub static ble_profile_serial: *const FuriHalBleProfileTemplate;
+}
+extern "C" {
     #[doc = "Send data through BLE\n\n # Arguments\n\n* `profile` - Profile instance\n * `data` - data buffer\n * `size` - data buffer size\n\n # Returns\n\ntrue on success"]
     pub fn ble_profile_serial_tx(
         profile: *mut FuriHalBleProfileBase,
@@ -40839,27 +42599,6 @@ extern "C" {
 extern "C" {
     pub fn ble_svc_dev_info_stop(service: *mut BleServiceDevInfo);
 }
-pub const FuriHalPwmOutputIdTim1PA7: FuriHalPwmOutputId = FuriHalPwmOutputId(0);
-pub const FuriHalPwmOutputIdLptim2PA4: FuriHalPwmOutputId = FuriHalPwmOutputId(1);
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct FuriHalPwmOutputId(pub core::ffi::c_uchar);
-extern "C" {
-    #[doc = "Enable PWM channel and set parameters\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n * `freq` (direction in) - Frequency in Hz\n * `duty` (direction in) - Duty cycle value in %"]
-    pub fn furi_hal_pwm_start(channel: FuriHalPwmOutputId, freq: u32, duty: u8);
-}
-extern "C" {
-    #[doc = "Disable PWM channel\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)"]
-    pub fn furi_hal_pwm_stop(channel: FuriHalPwmOutputId);
-}
-extern "C" {
-    #[doc = "Set PWM channel parameters\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n * `freq` (direction in) - Frequency in Hz\n * `duty` (direction in) - Duty cycle value in %"]
-    pub fn furi_hal_pwm_set_params(channel: FuriHalPwmOutputId, freq: u32, duty: u8);
-}
-extern "C" {
-    #[doc = "Is PWM channel running?\n\n # Arguments\n\n* `channel` (direction in) - PWM channel (FuriHalPwmOutputId)\n # Returns\n\nbool - true if running"]
-    pub fn furi_hal_pwm_is_running(channel: FuriHalPwmOutputId) -> bool;
-}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CdcCallbacks {
@@ -40874,6 +42613,9 @@ pub struct CdcCallbacks {
     pub config_callback: ::core::option::Option<
         unsafe extern "C" fn(context: *mut core::ffi::c_void, config: *mut usb_cdc_line_coding),
     >,
+    pub break_callback: ::core::option::Option<
+        unsafe extern "C" fn(context: *mut core::ffi::c_void, duration: u16),
+    >,
 }
 #[test]
 fn bindgen_test_layout_CdcCallbacks() {
@@ -40881,7 +42623,7 @@ fn bindgen_test_layout_CdcCallbacks() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<CdcCallbacks>(),
-        20usize,
+        24usize,
         concat!("Size of: ", stringify!(CdcCallbacks))
     );
     assert_eq!(
@@ -40937,6 +42679,16 @@ fn bindgen_test_layout_CdcCallbacks() {
             stringify!(CdcCallbacks),
             "::",
             stringify!(config_callback)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).break_callback) as usize - ptr as usize },
+        20usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(CdcCallbacks),
+            "::",
+            stringify!(break_callback)
         )
     );
 }
